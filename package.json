@@ -1,0 +1,25 @@
+{
+  "name": "movie-recommender-app",
+  "version": "1.0.0",
+  "description": "Personalized movie recommendations with trailers, ratings, and favorites.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "live-server --open=/",
+    "start": "live-server --open=/",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "movies",
+    "recommender",
+    "trailers",
+    "favorites"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "dependencies": {
+    "embla-carousel": "^8.6.0"
+  }
+}
