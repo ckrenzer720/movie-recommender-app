@@ -1,0 +1,20 @@
+/* Page-specific overrides (home, library, favorites, etc.) */
+/* Use for any section or view that needs extra styling */
+
+/* Home / index */
+.page-home .section:first-child .section-title {
+  font-size: var(--font-size-2xl);
+}
+
+/* Favorites section when empty */
+.favorites-empty {
+  text-align: center;
+  padding: var(--space-2xl);
+  color: var(--color-text-muted);
+}
+
+/* Detail view (when we have a dedicated detail page) */
+.page-detail .movie-detail__poster {
+  max-width: 300px;
+  border-radius: 8px;
+}

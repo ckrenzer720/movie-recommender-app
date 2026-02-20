@@ -1,0 +1,42 @@
+/* Page structure, grid, sections */
+body {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--header-height);
+  background-color: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.main-content {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-md);
+}
+
+.section {
+  margin-bottom: var(--space-2xl);
+}
+
+.section-title {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  margin-bottom: var(--space-lg);
+  color: var(--color-text);
+}
+
+.site-footer {
+  margin-top: var(--space-2xl);
+  padding: var(--space-lg) var(--space-md);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  border-top: 1px solid var(--color-border);
+}
