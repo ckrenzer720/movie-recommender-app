@@ -6,6 +6,7 @@ node_modules/
 .env.local
 .env.*.local
 *.env
+js/config.js
 
 # Build and output
 dist/

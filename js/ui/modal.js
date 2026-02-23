@@ -40,9 +40,9 @@ const Modal = {
     this.overlay.classList.add('is-open');
     this.content.innerHTML = '<p class="placeholder">Loading…</p>';
 
-    if (!Api.apiKey || Api.apiKey === 'YOUR_API_KEY') {
+    if (!Api.hasKey) {
       this.content.innerHTML = `
-        <p class="placeholder">Movie detail and trailer will load here. Set Api.apiKey to use TMDB.</p>
+        <p class="placeholder">Movie detail and trailer will load here. Add your TMDB API key in js/config.js (see config.example.js).</p>
         <p class="placeholder">Movie ID: ${movieId}</p>
       `;
       return;

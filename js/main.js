@@ -10,23 +10,26 @@
     Carousel.init();
 
     // Load and render movie rows when API key is set
-    if (Api.apiKey && Api.apiKey !== 'YOUR_API_KEY') {
+    if (Api.hasKey) {
       loadSections();
     } else {
-      console.info('Set Api.apiKey (e.g. from .env) to load real data.');
+      console.info('Add your TMDB API key in js/config.js (copy from config.example.js) to load real data.');
       renderPlaceholderCards();
     }
   }
 
   async function loadSections() {
     try {
-      const [popular, topRated] = await Promise.all([
+      const [popular, topRated, _] = await Promise.all([
         Api.getPopularMovies(1),
-        Api.getTopRatedMovies(1)
+        Api.getTopRatedMovies(1),
+        Api.getGenres()
       ]);
-      renderCarousel('featured', popular.results || []);
-      renderCarousel('editors-choice', topRated.results || []);
-      renderCarousel('recommendations', popular.results?.slice(0, 10) || []);
+      const results = popular.results || [];
+      const topResults = topRated.results || [];
+      renderCarousel('featured', results);
+      renderCarousel('editors-choice', topResults);
+      renderCarousel('recommendations', results.slice(0, 10));
     } catch (err) {
       console.error('Failed to load movies', err);
       renderPlaceholderCards();
@@ -48,7 +51,7 @@
     card.dataset.movieId = movie.id;
     const posterUrl = Utils.posterUrl(movie.poster_path);
     const rating = Utils.formatRating(movie.vote_average);
-    const genres = (movie.genre_ids || []).join(', '); // TODO: map IDs to names
+    const genres = Api.genreIdsToNamesSync(movie.genre_ids || []);
     card.innerHTML = `
       <img class="movie-card__poster" src="${posterUrl}" alt="${escapeHtml(movie.title)}" loading="lazy">
       <div class="movie-card__body">
