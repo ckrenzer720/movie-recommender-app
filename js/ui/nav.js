@@ -22,7 +22,7 @@ const Nav = {
     const section = sections[index] || 'home';
     State.setSection(section);
     this.setActive(section);
-    // TODO: filter content or navigate when we have multiple views
+    window.dispatchEvent(new CustomEvent('sectionchange', { detail: { section } }));
   },
 
   setActive(section) {

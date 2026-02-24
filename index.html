@@ -1,65 +1,71 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Movie Recommender</title>
-  <link rel="stylesheet" href="css/reset.css">
-  <link rel="stylesheet" href="css/variables.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/pages.css">
-</head>
-<body class="page-home">
-  <!-- Top navigation: New series, Library, News, Collections, Favorites -->
-  <header class="site-header" role="banner">
-    <nav class="main-nav" aria-label="Main navigation">
-      <a href="#" class="nav-link">New Series</a>
-      <a href="#" class="nav-link">Library</a>
-      <a href="#" class="nav-link">News</a>
-      <a href="#" class="nav-link">Collections</a>
-      <a href="#" class="nav-link">Favorites</a>
-    </nav>
-  </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Movie Recommender</title>
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/variables.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/pages.css" />
+  </head>
+  <body class="page-home">
+    <!-- Top navigation: New series, Library, News, Collections, Favorites -->
+    <header class="site-header" role="banner">
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="#" class="nav-link">New Series</a>
+        <a href="#" class="nav-link">Library</a>
+        <a href="#" class="nav-link">News</a>
+        <a href="#" class="nav-link">Collections</a>
+        <a href="#" class="nav-link">Favorites</a>
+      </nav>
+    </header>
 
-  <main class="main-content" role="main">
-    <!-- Hero / featured row -->
-    <section class="section" aria-labelledby="featured-heading">
-      <h2 id="featured-heading" class="section-title">Featured</h2>
-      <div class="carousel" data-carousel="featured">
-        <!-- Movie cards will be injected by JS -->
-        <p class="placeholder">Carousel: movie cards go here.</p>
+    <main class="main-content" role="main">
+      <!-- Home: Featured, Editor's choice, Recommendations -->
+      <div class="view view-home" data-view="home">
+        <section class="section" aria-labelledby="featured-heading">
+          <h2 id="featured-heading" class="section-title">Featured</h2>
+          <div class="carousel" data-carousel="featured">
+            <p class="placeholder">Carousel: movie cards go here.</p>
+          </div>
+        </section>
+        <section class="section" aria-labelledby="editors-choice-heading">
+          <h2 id="editors-choice-heading" class="section-title">Editor's Choice</h2>
+          <div class="carousel" data-carousel="editors-choice">
+            <p class="placeholder">Carousel: editor's choice cards go here.</p>
+          </div>
+        </section>
+        <section class="section" aria-labelledby="recommendations-heading">
+          <h2 id="recommendations-heading" class="section-title">Recommendations</h2>
+          <div class="carousel" data-carousel="recommendations">
+            <p class="placeholder">Carousel: recommendation cards go here.</p>
+          </div>
+        </section>
       </div>
-    </section>
 
-    <!-- Editor's choice -->
-    <section class="section" aria-labelledby="editors-choice-heading">
-      <h2 id="editors-choice-heading" class="section-title">Editor's Choice</h2>
-      <div class="carousel" data-carousel="editors-choice">
-        <p class="placeholder">Carousel: editor's choice cards go here.</p>
+      <!-- Favorites -->
+      <div class="view view-favorites hidden" data-view="favorites">
+        <section class="section" aria-labelledby="favorites-heading">
+          <h2 id="favorites-heading" class="section-title">Favorites</h2>
+          <div class="carousel" data-carousel="favorites">
+            <p class="placeholder">Your favorite movies will appear here.</p>
+          </div>
+        </section>
       </div>
-    </section>
+    </main>
 
-    <!-- Recommendations -->
-    <section class="section" aria-labelledby="recommendations-heading">
-      <h2 id="recommendations-heading" class="section-title">Recommendations</h2>
-      <div class="carousel" data-carousel="recommendations">
-        <p class="placeholder">Carousel: recommendation cards go here.</p>
-      </div>
-    </section>
-  </main>
-
-  <footer class="site-footer" role="contentinfo">
-    <p>Movie Recommender — trailers, ratings, favorites.</p>
-  </footer>
-  <script src="js/utils.js"></script>
-  <script src="js/state.js"></script>
-  <!-- Optional: add your key in js/config.js (copy from config.example.js) then uncomment: -->
-  <!-- <script src="js/config.js"></script> -->
-  <script src="js/api.js"></script>
-  <script src="js/ui/carousel.js"></script>
-  <script src="js/ui/nav.js"></script>
-  <script src="js/ui/modal.js"></script>
-  <script src="js/main.js"></script>
-</body>
+    <footer class="site-footer" role="contentinfo">
+      <p>Movie Recommender — trailers, ratings, favorites.</p>
+    </footer>
+    <script src="js/utils.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/ui/carousel.js"></script>
+    <script src="js/ui/nav.js"></script>
+    <script src="js/ui/modal.js"></script>
+    <script src="js/main.js"></script>
+  </body>
 </html>

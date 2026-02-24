@@ -1,5 +1,5 @@
 /**
- * App state: favorites, current section, UI flags.
+ * App state: favorites (as movie objects), current section.
  * Persists favorites to localStorage.
  */
 
@@ -8,6 +8,9 @@ const State = {
   currentSection: 'home',
   STORAGE_KEY: 'movie-recommender-favorites',
 
+  /** Minimal fields we store per movie for rendering cards. */
+  favoriteMovieFields: ['id', 'title', 'poster_path', 'vote_average', 'genre_ids'],
+
   init() {
     this.loadFavorites();
   },
@@ -15,7 +18,18 @@ const State = {
   loadFavorites() {
     try {
       const raw = localStorage.getItem(this.STORAGE_KEY);
-      this.favorites = raw ? JSON.parse(raw) : [];
+      if (!raw) {
+        this.favorites = [];
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        this.favorites = [];
+        return;
+      }
+      this.favorites = parsed.filter(
+        item => item && typeof item === 'object' && typeof item.id === 'number'
+      );
     } catch (e) {
       this.favorites = [];
     }
@@ -30,27 +44,35 @@ const State = {
   },
 
   isFavorite(movieId) {
-    return this.favorites.includes(movieId);
+    return this.favorites.some(m => m.id === movieId);
   },
 
-  addFavorite(movieId) {
-    if (this.favorites.includes(movieId)) return;
-    this.favorites.push(movieId);
+  addFavorite(movie) {
+    if (this.isFavorite(movie.id)) return;
+    const minimal = {};
+    this.favoriteMovieFields.forEach(key => {
+      if (movie[key] !== undefined) minimal[key] = movie[key];
+    });
+    this.favorites.push(minimal);
     this.saveFavorites();
   },
 
   removeFavorite(movieId) {
-    this.favorites = this.favorites.filter(id => id !== movieId);
+    this.favorites = this.favorites.filter(m => m.id !== movieId);
     this.saveFavorites();
   },
 
-  toggleFavorite(movieId) {
-    if (this.isFavorite(movieId)) {
-      this.removeFavorite(movieId);
+  toggleFavorite(movie) {
+    if (this.isFavorite(movie.id)) {
+      this.removeFavorite(movie.id);
       return false;
     }
-    this.addFavorite(movieId);
+    this.addFavorite(movie);
     return true;
+  },
+
+  getFavorites() {
+    return this.favorites.slice();
   },
 
   setSection(section) {
