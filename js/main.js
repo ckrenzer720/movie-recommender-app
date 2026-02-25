@@ -48,7 +48,7 @@
     if (list.length === 0) {
       container.classList.add('carousel--empty');
       const empty = document.createElement('p');
-      empty.className = 'placeholder favorites-empty';
+      empty.className = 'carousel__message favorites-empty';
       empty.textContent = 'No favorites yet. Click the ♡ on any movie to add it here.';
       container.appendChild(empty);
       return;
@@ -61,6 +61,7 @@
   }
 
   async function loadSections() {
+    setCarouselsLoading(['featured', 'editors-choice', 'recommendations']);
     try {
       const [popular, topRated, _] = await Promise.all([
         Api.getPopularMovies(1),
@@ -74,15 +75,58 @@
       renderCarousel('recommendations', results.slice(0, 10));
     } catch (err) {
       console.error('Failed to load movies', err);
-      renderPlaceholderCards();
+      setCarouselsError(['featured', 'editors-choice', 'recommendations'], 'Couldn’t load movies. Check your connection and API key.');
     }
+  }
+
+  function setCarouselLoading(name) {
+    const container = document.querySelector(`[data-carousel="${name}"]`);
+    if (!container) return;
+    container.classList.remove('carousel--empty');
+    container.classList.add('carousel--loading');
+    container.innerHTML = `
+      <div class="carousel__message">
+        <div class="loading-spinner" aria-hidden="true"></div>
+        <p>Loading…</p>
+      </div>
+    `;
+  }
+
+  function setCarouselsLoading(names) {
+    names.forEach(name => setCarouselLoading(name));
+  }
+
+  function setCarouselError(name, message) {
+    const container = document.querySelector(`[data-carousel="${name}"]`);
+    if (!container) return;
+    container.classList.remove('carousel--loading');
+    container.classList.add('carousel--empty');
+    container.innerHTML = `
+      <p class="carousel__message carousel__message--error">${escapeHtml(message)}</p>
+    `;
+  }
+
+  function setCarouselsError(names, message) {
+    names.forEach(name => setCarouselError(name, message));
+  }
+
+  function setCarouselEmpty(name, message) {
+    const container = document.querySelector(`[data-carousel="${name}"]`);
+    if (!container) return;
+    container.classList.remove('carousel--loading');
+    container.classList.add('carousel--empty');
+    container.innerHTML = `<p class="carousel__message">${escapeHtml(message)}</p>`;
   }
 
   function renderCarousel(name, movies) {
     const container = document.querySelector(`[data-carousel="${name}"]`);
     if (!container) return;
+    container.classList.remove('carousel--loading', 'carousel--empty');
     container.innerHTML = '';
-    container.classList.remove('carousel--empty');
+    if (!movies || movies.length === 0) {
+      setCarouselEmpty(name, 'No movies in this section.');
+      return;
+    }
     movies.forEach(movie => {
       container.appendChild(createMovieCard(movie));
     });

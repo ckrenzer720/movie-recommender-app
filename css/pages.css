@@ -6,8 +6,9 @@
   font-size: var(--font-size-2xl);
 }
 
-/* Favorites section when empty */
-.favorites-empty {
+/* Favorites and carousel empty / loading messages */
+.favorites-empty,
+.carousel__message {
   text-align: center;
   padding: var(--space-2xl);
   color: var(--color-text-muted);
