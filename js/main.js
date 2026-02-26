@@ -3,6 +3,8 @@
  */
 
 (function () {
+  const HOME_CAROUSELS = ['featured', 'editors-choice', 'recommendations'];
+
   function init() {
     State.init();
     Nav.init();
@@ -23,6 +25,10 @@
     switchView(State.currentSection);
   }
 
+  function getCarouselContainer(name) {
+    return document.querySelector(`[data-carousel="${name}"]`);
+  }
+
   function switchView(section) {
     const home = document.querySelector('.view-home');
     const favorites = document.querySelector('.view-favorites');
@@ -39,29 +45,25 @@
   }
 
   function renderFavorites() {
-    const container = document.querySelector('[data-carousel="favorites"]');
+    const container = getCarouselContainer('favorites');
     if (!container) return;
 
     const list = State.getFavorites();
     container.innerHTML = '';
 
     if (list.length === 0) {
-      container.classList.add('carousel--empty');
-      const empty = document.createElement('p');
-      empty.className = 'carousel__message favorites-empty';
-      empty.textContent = 'No favorites yet. Click the ♡ on any movie to add it here.';
-      container.appendChild(empty);
+      setCarouselMessage(container, 'No favorites yet. Click the ♡ on any movie to add it here.', false, 'favorites-empty');
       return;
     }
 
-    container.classList.remove('carousel--empty');
+    container.classList.remove('carousel--loading', 'carousel--empty');
     list.forEach(movie => {
       container.appendChild(createMovieCard(movie));
     });
   }
 
   async function loadSections() {
-    setCarouselsLoading(['featured', 'editors-choice', 'recommendations']);
+    setCarouselsLoading(HOME_CAROUSELS);
     try {
       const [popular, topRated, _] = await Promise.all([
         Api.getPopularMovies(1),
@@ -75,12 +77,12 @@
       renderCarousel('recommendations', results.slice(0, 10));
     } catch (err) {
       console.error('Failed to load movies', err);
-      setCarouselsError(['featured', 'editors-choice', 'recommendations'], 'Couldn’t load movies. Check your connection and API key.');
+      setCarouselsMessage(HOME_CAROUSELS, 'Couldn’t load movies. Check your connection and API key.', true);
     }
   }
 
   function setCarouselLoading(name) {
-    const container = document.querySelector(`[data-carousel="${name}"]`);
+    const container = getCarouselContainer(name);
     if (!container) return;
     container.classList.remove('carousel--empty');
     container.classList.add('carousel--loading');
@@ -96,35 +98,31 @@
     names.forEach(name => setCarouselLoading(name));
   }
 
-  function setCarouselError(name, message) {
-    const container = document.querySelector(`[data-carousel="${name}"]`);
+  /** Set carousel to a message state (empty or error). Pass container or name. extraClass is optional (e.g. 'favorites-empty'). */
+  function setCarouselMessage(containerOrName, message, isError, extraClass) {
+    const container = typeof containerOrName === 'string'
+      ? getCarouselContainer(containerOrName)
+      : containerOrName;
     if (!container) return;
     container.classList.remove('carousel--loading');
     container.classList.add('carousel--empty');
-    container.innerHTML = `
-      <p class="carousel__message carousel__message--error">${escapeHtml(message)}</p>
-    `;
+    let messageClass = 'carousel__message';
+    if (isError) messageClass += ' carousel__message--error';
+    if (extraClass) messageClass += ' ' + extraClass;
+    container.innerHTML = `<p class="${messageClass}">${escapeHtml(message)}</p>`;
   }
 
-  function setCarouselsError(names, message) {
-    names.forEach(name => setCarouselError(name, message));
-  }
-
-  function setCarouselEmpty(name, message) {
-    const container = document.querySelector(`[data-carousel="${name}"]`);
-    if (!container) return;
-    container.classList.remove('carousel--loading');
-    container.classList.add('carousel--empty');
-    container.innerHTML = `<p class="carousel__message">${escapeHtml(message)}</p>`;
+  function setCarouselsMessage(names, message, isError) {
+    names.forEach(name => setCarouselMessage(name, message, isError));
   }
 
   function renderCarousel(name, movies) {
-    const container = document.querySelector(`[data-carousel="${name}"]`);
+    const container = getCarouselContainer(name);
     if (!container) return;
     container.classList.remove('carousel--loading', 'carousel--empty');
     container.innerHTML = '';
     if (!movies || movies.length === 0) {
-      setCarouselEmpty(name, 'No movies in this section.');
+      setCarouselMessage(container, 'No movies in this section.', false);
       return;
     }
     movies.forEach(movie => {
@@ -179,9 +177,7 @@
       { id: 1, title: 'Movie 2', vote_average: 8.0, poster_path: null, genre_ids: [] },
       { id: 2, title: 'Movie 3', vote_average: 6.5, poster_path: null, genre_ids: [] }
     ];
-    ['featured', 'editors-choice', 'recommendations'].forEach(name => {
-      renderCarousel(name, placeholders);
-    });
+    HOME_CAROUSELS.forEach(name => renderCarousel(name, placeholders));
   }
 
   function escapeHtml(str) {
