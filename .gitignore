@@ -38,3 +38,6 @@ temp/
 # Optional: test coverage
 coverage/
 .nyc_output/
+
+# Server SQLite data
+server/data/

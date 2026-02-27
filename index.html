@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="css/pages.css" />
   </head>
   <body class="page-home">
-    <!-- Top navigation: New series, Library, News, Collections, Favorites -->
     <header class="site-header" role="banner">
       <nav class="main-nav" aria-label="Main navigation">
         <a href="#" class="nav-link">New Series</a>
@@ -19,8 +18,23 @@
         <a href="#" class="nav-link">News</a>
         <a href="#" class="nav-link">Collections</a>
         <a href="#" class="nav-link">Favorites</a>
+        <div class="nav-auth">
+          <button type="button" class="btn btn--ghost btn--auth" id="auth-btn" aria-expanded="false" aria-haspopup="dialog" aria-label="Sign in">Sign in</button>
+        </div>
       </nav>
     </header>
+
+    <!-- Auth modal: redirect to Auth0 to sign in -->
+    <div class="auth-overlay hidden" id="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <div class="auth-modal">
+        <button type="button" class="auth-modal__close" id="auth-close" aria-label="Close">&times;</button>
+        <h2 id="auth-title" class="auth-modal__title">Sign in to save favorites</h2>
+        <p class="auth-modal__subtitle">Your favorites will sync to your account so you can access them anywhere.</p>
+        <div class="auth-form__actions">
+          <button type="button" class="btn btn--primary" id="auth-signin-btn">Sign in with Auth0</button>
+        </div>
+      </div>
+    </div>
 
     <main class="main-content" role="main">
       <!-- Home: Featured, Editor's choice, Recommendations -->
@@ -63,9 +77,12 @@
     <script src="js/state.js"></script>
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script src="js/favorites-api.js"></script>
     <script src="js/ui/carousel.js"></script>
     <script src="js/ui/nav.js"></script>
     <script src="js/ui/modal.js"></script>
+    <script src="js/ui/auth-ui.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>

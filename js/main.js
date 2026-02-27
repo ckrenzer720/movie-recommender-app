@@ -5,11 +5,19 @@
 (function () {
   const HOME_CAROUSELS = ['featured', 'editors-choice', 'recommendations'];
 
-  function init() {
+  async function doInit() {
     State.init();
     Nav.init();
     Modal.init();
     Carousel.init();
+
+    if (window.Auth?.isConfigured) {
+      window.Auth.onAuthChange(onAuthChange);
+      if (window.Auth.isSignedIn()) {
+        await loadUserFavorites();
+      }
+    }
+    if (window.AuthUI) window.AuthUI.init();
 
     window.addEventListener('sectionchange', (e) => {
       switchView(e.detail?.section ?? State.currentSection);
@@ -23,6 +31,42 @@
     }
 
     switchView(State.currentSection);
+  }
+
+  async function onAuthChange(user) {
+    if (user) {
+      await loadUserFavorites();
+    } else {
+      State.loadFavorites();
+    }
+    if (State.currentSection === 'favorites') {
+      renderFavorites();
+    }
+  }
+
+  async function loadUserFavorites() {
+    if (!window.Auth?.isSignedIn?.() || !window.FavoritesAPI) return;
+    try {
+      const list = await window.FavoritesAPI.getFavorites();
+      State.setFavorites(list);
+    } catch (e) {
+      console.warn('Could not load favorites from account', e);
+    }
+  }
+
+  function init() {
+    function run() {
+      if (window.Auth) {
+        doInit();
+      } else {
+        window.addEventListener('authready', doInit, { once: true });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', run);
+    } else {
+      run();
+    }
   }
 
   function getCarouselContainer(name) {
