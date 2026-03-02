@@ -3,8 +3,6 @@
  * Requires window.__AUTH0_DOMAIN__, __AUTH0_CLIENT_ID__, __AUTH0_AUDIENCE__, __API_URL__ in config.
  */
 
-import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2.0.0/+esm';
-
 let client = null;
 let currentUser = null;
 const listeners = [];
@@ -32,17 +30,18 @@ const Auth = {
   },
 
   async init() {
+    window.Auth = Auth;
     if (!this.isConfigured) {
-      window.Auth = Auth;
       window.dispatchEvent(new Event('authready'));
       return null;
     }
     try {
+      const { createAuth0Client } = await import('https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2.0.0/+esm');
       client = await createAuth0Client({
         domain: window.__AUTH0_DOMAIN__,
         client_id: window.__AUTH0_CLIENT_ID__,
         authorizationParams: {
-          redirect_uri: window.location.origin + window.location.pathname.replace(/\/$/, '') || '/',
+          redirect_uri: window.location.origin + (window.location.pathname || '/').replace(/\/$/, '') || '/',
           audience: window.__AUTH0_AUDIENCE__ || undefined
         }
       });
@@ -54,8 +53,8 @@ const Auth = {
     } catch (err) {
       console.warn('Auth init failed', err);
       currentUser = null;
+      client = null;
     }
-    window.Auth = Auth;
     window.dispatchEvent(new Event('authready'));
     Auth._notify();
     return currentUser;
@@ -70,7 +69,8 @@ const Auth = {
   },
 
   async login() {
-    if (!client) throw new Error('Auth not configured');
+    if (!this.isConfigured) throw new Error('Auth0 is not configured. Add AUTH0_DOMAIN, AUTH0_CLIENT_ID, and API_URL to config.js.');
+    if (!client) throw new Error('Auth0 client not ready. Refresh the page or check the console for errors.');
     await client.loginWithRedirect();
   },
 
@@ -85,9 +85,14 @@ const Auth = {
 };
 
 async function initAuth() {
-  await Auth.init();
-  if (Auth.isSignedIn()) {
-    Auth._notify();
+  try {
+    await Auth.init();
+    if (Auth.isSignedIn()) {
+      Auth._notify();
+    }
+  } catch (err) {
+    console.error('Auth bootstrap failed', err);
+    window.dispatchEvent(new Event('authready'));
   }
 }
 

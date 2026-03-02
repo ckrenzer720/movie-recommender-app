@@ -13,11 +13,11 @@
   <body class="page-home">
     <header class="site-header" role="banner">
       <nav class="main-nav" aria-label="Main navigation">
-        <a href="#" class="nav-link">New Series</a>
-        <a href="#" class="nav-link">Library</a>
-        <a href="#" class="nav-link">News</a>
-        <a href="#" class="nav-link">Collections</a>
-        <a href="#" class="nav-link">Favorites</a>
+        <a href="#" class="nav-link" data-section="new-series">New Series</a>
+        <a href="#" class="nav-link" data-section="library">Library</a>
+        <a href="#" class="nav-link" data-section="news">News</a>
+        <a href="#" class="nav-link" data-section="collections">Collections</a>
+        <a href="#" class="nav-link" data-section="favorites">Favorites</a>
         <div class="nav-auth">
           <button type="button" class="btn btn--ghost btn--auth" id="auth-btn" aria-expanded="false" aria-haspopup="dialog" aria-label="Sign in">Sign in</button>
         </div>
@@ -30,6 +30,7 @@
         <button type="button" class="auth-modal__close" id="auth-close" aria-label="Close">&times;</button>
         <h2 id="auth-title" class="auth-modal__title">Sign in to save favorites</h2>
         <p class="auth-modal__subtitle">Your favorites will sync to your account so you can access them anywhere.</p>
+        <p class="auth-form__error hidden" id="auth-error"></p>
         <div class="auth-form__actions">
           <button type="button" class="btn btn--primary" id="auth-signin-btn">Sign in with Auth0</button>
         </div>
@@ -38,7 +39,7 @@
 
     <main class="main-content" role="main">
       <!-- Home: Featured, Editor's choice, Recommendations -->
-      <div class="view view-home" data-view="home">
+      <div class="view view-home" data-view="home" id="view-home">
         <section class="section" aria-labelledby="featured-heading">
           <h2 id="featured-heading" class="section-title">Featured</h2>
           <div class="carousel" data-carousel="featured">
@@ -56,6 +57,38 @@
           <div class="carousel" data-carousel="recommendations">
             <p class="placeholder">Carousel: recommendation cards go here.</p>
           </div>
+        </section>
+      </div>
+
+      <!-- New Series -->
+      <div class="view view-new-series hidden" data-view="new-series">
+        <section class="section" aria-labelledby="new-series-heading">
+          <h2 id="new-series-heading" class="section-title">New Series</h2>
+          <p class="carousel__message">New series coming soon. Check back later.</p>
+        </section>
+      </div>
+
+      <!-- Library -->
+      <div class="view view-library hidden" data-view="library">
+        <section class="section" aria-labelledby="library-heading">
+          <h2 id="library-heading" class="section-title">Library</h2>
+          <p class="carousel__message">Browse the full library here. Coming soon.</p>
+        </section>
+      </div>
+
+      <!-- News -->
+      <div class="view view-news hidden" data-view="news">
+        <section class="section" aria-labelledby="news-heading">
+          <h2 id="news-heading" class="section-title">News</h2>
+          <p class="carousel__message">Movie news and updates. Coming soon.</p>
+        </section>
+      </div>
+
+      <!-- Collections -->
+      <div class="view view-collections hidden" data-view="collections">
+        <section class="section" aria-labelledby="collections-heading">
+          <h2 id="collections-heading" class="section-title">Collections</h2>
+          <p class="carousel__message">Curated collections. Coming soon.</p>
         </section>
       </div>
 

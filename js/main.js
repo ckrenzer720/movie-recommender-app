@@ -74,18 +74,18 @@
   }
 
   function switchView(section) {
-    const home = document.querySelector('.view-home');
-    const favorites = document.querySelector('.view-favorites');
-    if (!home || !favorites) return;
+    const views = document.querySelectorAll('.view[data-view]');
+    if (!views.length) return;
 
-    if (section === 'favorites') {
-      home.classList.add('hidden');
-      favorites.classList.remove('hidden');
-      renderFavorites();
-    } else {
-      favorites.classList.add('hidden');
-      home.classList.remove('hidden');
-    }
+    views.forEach((view) => {
+      const viewId = view.getAttribute('data-view');
+      if (viewId === section) {
+        view.classList.remove('hidden');
+        if (section === 'favorites') renderFavorites();
+      } else {
+        view.classList.add('hidden');
+      }
+    });
   }
 
   function renderFavorites() {

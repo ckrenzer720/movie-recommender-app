@@ -5,6 +5,7 @@
 const AuthUI = {
   overlay: null,
   authBtn: null,
+  errorEl: null,
 
   init() {
     this.overlay = document.getElementById('auth-overlay');
@@ -15,19 +16,26 @@ const AuthUI = {
       return;
     }
 
+    this.errorEl = document.getElementById('auth-error');
+
     document.getElementById('auth-close')?.addEventListener('click', () => this.close());
     this.overlay?.addEventListener('click', (e) => { if (e.target === this.overlay) this.close(); });
-    this.authBtn.addEventListener('click', () => {
+    this.authBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       if (window.Auth?.isSignedIn?.()) {
         window.Auth.logout();
       } else {
-        this.open();
+        this.startLogin();
       }
     });
 
-    document.getElementById('auth-signin-btn')?.addEventListener('click', () => {
-      window.Auth?.login();
-    });
+    const signinBtn = document.getElementById('auth-signin-btn');
+    if (signinBtn) {
+      signinBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.startLogin();
+      });
+    }
 
     if (window.Auth) {
       window.Auth.onAuthChange(() => this.updateButton());
@@ -35,7 +43,28 @@ const AuthUI = {
     }
   },
 
+  async startLogin() {
+    this.showError('');
+    if (!window.Auth) {
+      this.showError('Auth not loaded. Check the console.');
+      return;
+    }
+    try {
+      await window.Auth.login();
+    } catch (err) {
+      console.error('Login failed', err);
+      this.showError(err.message || 'Sign-in failed. Check the console.');
+    }
+  },
+
+  showError(msg) {
+    if (!this.errorEl) return;
+    this.errorEl.textContent = msg;
+    this.errorEl.classList.toggle('hidden', !msg);
+  },
+
   open() {
+    this.showError('');
     this.overlay?.classList.remove('hidden');
     this.authBtn?.setAttribute('aria-expanded', 'true');
   },
