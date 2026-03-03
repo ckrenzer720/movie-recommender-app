@@ -53,5 +53,17 @@ const Utils = {
   truncate(text, maxLength = 120) {
     if (!text || text.length <= maxLength) return text || '';
     return text.slice(0, maxLength).trim() + '…';
+  },
+
+  /**
+   * Escape HTML for safe insertion into the DOM.
+   * @param {string} str
+   * @returns {string}
+   */
+  escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
   }
 };

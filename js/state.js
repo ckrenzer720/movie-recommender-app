@@ -7,6 +7,8 @@ const State = {
   favorites: [],
   currentSection: 'home',
   STORAGE_KEY: 'movie-recommender-favorites',
+  _saveToBackendTimer: null,
+  _saveToBackendDelay: 400,
 
   /** Minimal fields we store per movie for rendering cards (poster, title, rating, genres). */
   favoriteMovieFields: ['id', 'title', 'poster_path', 'vote_average', 'genre_ids'],
@@ -73,7 +75,7 @@ const State = {
     return this.favorites.slice();
   },
 
-  /** Replace favorites (e.g. after loading from server). Saves to localStorage and, if signed in, syncs to Supabase. */
+  /** Replace favorites (e.g. after loading from server). Saves to localStorage and, if signed in, syncs to backend. */
   setFavorites(favorites) {
     const list = Array.isArray(favorites) ? favorites.filter(m => m && typeof m.id === 'number') : [];
     this.favorites = list;
@@ -87,7 +89,11 @@ const State = {
       console.warn('Could not save favorites', e);
     }
     if (window.Auth?.isSignedIn?.() && window.FavoritesAPI?.saveFavorites) {
-      window.FavoritesAPI.saveFavorites(this.favorites);
+      if (this._saveToBackendTimer) clearTimeout(this._saveToBackendTimer);
+      this._saveToBackendTimer = setTimeout(() => {
+        this._saveToBackendTimer = null;
+        window.FavoritesAPI.saveFavorites(this.favorites);
+      }, this._saveToBackendDelay);
     }
   },
 

@@ -73,8 +73,14 @@
     return document.querySelector(`[data-carousel="${name}"]`);
   }
 
+  let cachedViews = null;
+  function getViews() {
+    if (!cachedViews) cachedViews = document.querySelectorAll('.view[data-view]');
+    return cachedViews;
+  }
+
   function switchView(section) {
-    const views = document.querySelectorAll('.view[data-view]');
+    const views = getViews();
     if (!views.length) return;
 
     views.forEach((view) => {
@@ -101,9 +107,9 @@
     }
 
     container.classList.remove('carousel--loading', 'carousel--empty');
-    list.forEach(movie => {
-      container.appendChild(createMovieCard(movie));
-    });
+    const fragment = document.createDocumentFragment();
+    list.forEach(movie => fragment.appendChild(createMovieCard(movie)));
+    container.appendChild(fragment);
   }
 
   async function loadSections() {
@@ -153,7 +159,7 @@
     let messageClass = 'carousel__message';
     if (isError) messageClass += ' carousel__message--error';
     if (extraClass) messageClass += ' ' + extraClass;
-    container.innerHTML = `<p class="${messageClass}">${escapeHtml(message)}</p>`;
+    container.innerHTML = `<p class="${messageClass}">${Utils.escapeHtml(message)}</p>`;
   }
 
   function setCarouselsMessage(names, message, isError) {
@@ -169,9 +175,9 @@
       setCarouselMessage(container, 'No movies in this section.', false);
       return;
     }
-    movies.forEach(movie => {
-      container.appendChild(createMovieCard(movie));
-    });
+    const fragment = document.createDocumentFragment();
+    movies.forEach(movie => fragment.appendChild(createMovieCard(movie)));
+    container.appendChild(fragment);
   }
 
   function createMovieCard(movie) {
@@ -185,13 +191,13 @@
 
     card.innerHTML = `
       <div class="movie-card__poster-wrap">
-        <img class="movie-card__poster" src="${posterUrl}" alt="${escapeHtml(movie.title)}" loading="lazy">
+        <img class="movie-card__poster" src="${posterUrl}" alt="${Utils.escapeHtml(movie.title)}" loading="lazy">
         <button type="button" class="movie-card__favorite ${isFav ? 'is-favorite' : ''}" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}" data-movie-id="${movie.id}">${isFav ? '♥' : '♡'}</button>
       </div>
       <div class="movie-card__body">
-        <h3 class="movie-card__title">${escapeHtml(movie.title)}</h3>
+        <h3 class="movie-card__title">${Utils.escapeHtml(movie.title)}</h3>
         <span class="movie-card__rating">★ ${rating}</span>
-        ${genres ? `<p class="movie-card__genres">${escapeHtml(genres)}</p>` : ''}
+        ${genres ? `<p class="movie-card__genres">${Utils.escapeHtml(genres)}</p>` : ''}
       </div>
     `;
 
@@ -222,13 +228,6 @@
       { id: 2, title: 'Movie 3', vote_average: 6.5, poster_path: null, genre_ids: [] }
     ];
     HOME_CAROUSELS.forEach(name => renderCarousel(name, placeholders));
-  }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
   }
 
   if (document.readyState === 'loading') {

@@ -6,10 +6,12 @@ const Modal = {
   overlay: null,
   closeBtn: null,
   content: null,
+  _previousActiveElement: null,
 
   init() {
     this.overlay = document.createElement('div');
     this.overlay.className = 'modal-overlay';
+    this.overlay.setAttribute('aria-hidden', 'true');
     this.overlay.innerHTML = `
       <div class="modal">
         <button type="button" class="modal__close" aria-label="Close">&times;</button>
@@ -37,13 +39,16 @@ const Modal = {
    * @param {number} movieId
    */
   async open(movieId) {
+    this._previousActiveElement = document.activeElement;
     this.overlay.classList.add('is-open');
+    this.overlay.setAttribute('aria-hidden', 'false');
     this.content.innerHTML = '<p class="placeholder">Loading…</p>';
+    this.closeBtn.focus();
 
     if (!Api.hasKey) {
       this.content.innerHTML = `
         <p class="placeholder">Movie detail and trailer will load here. Add your TMDB API key in js/config.js (see config.example.js).</p>
-        <p class="placeholder">Movie ID: ${movieId}</p>
+        <p class="placeholder">Movie ID: ${Utils.escapeHtml(String(movieId))}</p>
       `;
       return;
     }
@@ -57,14 +62,15 @@ const Modal = {
       const overview = Utils.truncate(movie.overview, 300);
 
       let html = `
-        <h2>${escapeHtml(movie.title)}</h2>
+        <h2>${Utils.escapeHtml(movie.title)}</h2>
         <p><strong>Rating:</strong> ★ ${rating} &nbsp; <strong>Release:</strong> ${date}</p>
-        <p>${escapeHtml(overview)}</p>
+        <p>${Utils.escapeHtml(overview)}</p>
       `;
       if (trailerKey) {
+        const safeKey = Utils.escapeHtml(trailerKey);
         html += `
           <div class="modal__video" style="margin-top:1rem; position:relative; padding-bottom:56.25%; height:0; overflow:hidden;">
-            <iframe src="https://www.youtube.com/embed/${trailerKey}?autoplay=1" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;"></iframe>
+            <iframe src="https://www.youtube.com/embed/${safeKey}?autoplay=1" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;"></iframe>
           </div>
         `;
       }
@@ -77,13 +83,10 @@ const Modal = {
 
   close() {
     this.overlay.classList.remove('is-open');
+    this.overlay.setAttribute('aria-hidden', 'true');
     this.content.innerHTML = '';
+    if (this._previousActiveElement && typeof this._previousActiveElement.focus === 'function') {
+      this._previousActiveElement.focus();
+    }
   }
 };
-
-function escapeHtml(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
