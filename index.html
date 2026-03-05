@@ -19,6 +19,9 @@
         <a href="#" class="nav-link" data-section="news">News</a>
         <a href="#" class="nav-link" data-section="collections">Collections</a>
         <a href="#" class="nav-link" data-section="favorites">Favorites</a>
+        <form class="nav-search" role="search" aria-label="Search movies">
+          <input type="search" class="nav-search__input" id="search-input" placeholder="Search movies…" autocomplete="off" aria-label="Search movies" />
+        </form>
         <div class="nav-auth">
           <button type="button" class="btn btn--ghost btn--auth" id="auth-btn" aria-expanded="false" aria-haspopup="dialog" aria-label="Sign in">Sign in</button>
         </div>
@@ -90,6 +93,16 @@
         <section class="section" aria-labelledby="collections-heading">
           <h2 id="collections-heading" class="section-title">Collections</h2>
           <p class="carousel__message">Curated collections. Coming soon.</p>
+        </section>
+      </div>
+
+      <!-- Search results -->
+      <div class="view view-search hidden" data-view="search">
+        <section class="section" aria-labelledby="search-heading">
+          <h2 id="search-heading" class="section-title">Search results</h2>
+          <div class="search-results" id="search-results" data-search-results>
+            <p class="carousel__message">Type in the search box above to find movies.</p>
+          </div>
         </section>
       </div>
 

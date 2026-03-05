@@ -18,6 +18,7 @@
       }
     }
     if (window.AuthUI) window.AuthUI.init();
+    initSearch();
 
     window.addEventListener('sectionchange', (e) => {
       switchView(e.detail?.section ?? State.currentSection);
@@ -92,6 +93,78 @@
         view.classList.add('hidden');
       }
     });
+  }
+
+  const SEARCH_DEBOUNCE_MS = 350;
+  let searchDebounceTimer = null;
+
+  function initSearch() {
+    const input = document.getElementById('search-input');
+    const form = document.querySelector('.nav-search');
+    if (!input || !form) return;
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      runSearch(input.value.trim());
+    });
+
+    input.addEventListener('input', () => {
+      if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+      const query = input.value.trim();
+      if (!query) {
+        return;
+      }
+      searchDebounceTimer = setTimeout(() => runSearch(query), SEARCH_DEBOUNCE_MS);
+    });
+  }
+
+  async function runSearch(query) {
+    const container = document.getElementById('search-results');
+    if (!container) return;
+
+    if (!query) {
+      container.innerHTML = '<p class="carousel__message">Type in the search box above to find movies.</p>';
+      return;
+    }
+
+    State.setSection('search');
+    switchView('search');
+    container.classList.add('carousel--loading');
+    container.classList.remove('carousel--empty');
+    container.innerHTML = '<div class="carousel__message"><div class="loading-spinner" aria-hidden="true"></div><p>Searching…</p></div>';
+
+    if (!Api.hasKey) {
+      container.classList.remove('carousel--loading');
+      container.classList.add('carousel--empty');
+      container.innerHTML = '<p class="carousel__message">Add your TMDB API key in js/config.js to search movies.</p>';
+      return;
+    }
+
+    try {
+      const data = await Api.searchMovies(query);
+      const movies = data.results || [];
+      renderSearchResults(container, movies, query);
+    } catch (err) {
+      console.error('Search failed', err);
+      container.classList.remove('carousel--loading');
+      container.classList.add('carousel--empty');
+      container.innerHTML = '<p class="carousel__message carousel__message--error">Search failed. Try again.</p>';
+    }
+  }
+
+  function renderSearchResults(container, movies, query) {
+    container.classList.remove('carousel--empty', 'carousel--loading');
+    container.innerHTML = '';
+
+    if (movies.length === 0) {
+      container.classList.add('carousel--empty');
+      container.innerHTML = `<p class="carousel__message">No movies found for "${Utils.escapeHtml(query)}".</p>`;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    movies.forEach((movie) => fragment.appendChild(createMovieCard(movie)));
+    container.appendChild(fragment);
   }
 
   function renderFavorites() {
