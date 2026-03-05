@@ -1,11 +1,10 @@
 /**
- * Copy this file to config.js and set your keys.
- * config.js is gitignored.
+ * Copy this file to config.js and set your keys. config.js is gitignored.
+ * If config.js is missing, the app still runs with empty defaults (no TMDB data, no sign-in).
  *
  * 1. TMDB: https://www.themoviedb.org/settings/api
  * 2. Auth0: create an application and API at https://auth0.com
  * 3. API_URL: your backend (e.g. http://localhost:3001 when running server)
- * 4. In index.html, uncomment: <script src="js/config.js"></script>
  */
 
 window.__TMDB_API_KEY__ = 'YOUR_TMDB_API_KEY';

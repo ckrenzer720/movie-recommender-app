@@ -13,6 +13,7 @@
   <body class="page-home">
     <header class="site-header" role="banner">
       <nav class="main-nav" aria-label="Main navigation">
+        <a href="#" class="nav-link" data-section="home">Home</a>
         <a href="#" class="nav-link" data-section="new-series">New Series</a>
         <a href="#" class="nav-link" data-section="library">Library</a>
         <a href="#" class="nav-link" data-section="news">News</a>
@@ -106,8 +107,13 @@
     <footer class="site-footer" role="contentinfo">
       <p>Movie Recommender — trailers, ratings, favorites.</p>
     </footer>
-    <script src="js/utils.js"></script>
-    <script src="js/state.js"></script>
+    <script>
+      window.__TMDB_API_KEY__ = window.__TMDB_API_KEY__ || '';
+      window.__AUTH0_DOMAIN__ = window.__AUTH0_DOMAIN__ || '';
+      window.__AUTH0_CLIENT_ID__ = window.__AUTH0_CLIENT_ID__ || '';
+      window.__AUTH0_AUDIENCE__ = window.__AUTH0_AUDIENCE__ || '';
+      window.__API_URL__ = window.__API_URL__ || '';
+    </script>
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script type="module" src="js/auth.js"></script>

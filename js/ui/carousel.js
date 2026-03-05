@@ -1,6 +1,6 @@
 /**
- * Carousel behavior: optional Embla wiring or native scroll.
- * For now, uses native horizontal scroll (CSS scroll-snap).
+ * Carousel: native horizontal scroll (CSS scroll-snap).
+ * Arrows/dots can be added later via Carousel.scroll(name, delta).
  */
 
 const Carousel = {
@@ -9,9 +9,6 @@ const Carousel = {
   init() {
     const carousels = document.querySelectorAll('[data-carousel]');
     carousels.forEach(el => this.nodes.push(el));
-    // Optional: integrate Embla here for arrows/dots
-    // import EmblaCarousel from 'embla-carousel';
-    // this.nodes.forEach(node => EmblaCarousel(node, { align: 'start', loop: false }));
   },
 
   /**

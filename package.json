@@ -20,7 +20,5 @@
   "devDependencies": {
     "live-server": "^1.2.2"
   },
-  "dependencies": {
-    "embla-carousel": "^8.6.0"
-  }
+  "dependencies": {}
 }
