@@ -145,6 +145,25 @@ const Api = {
   },
 
   /**
+   * Discover movies by genre (for Library genre rows).
+   * @param {number} genreId - TMDB genre id (e.g. 28 Action, 35 Comedy).
+   * @param {number} [page=1]
+   * @param {string} [language]
+   */
+  async getMoviesByGenre(genreId, page = 1, language = 'en-US') {
+    const id = Number(genreId);
+    if (!Number.isInteger(id) || id < 1) {
+      throw new Error('Invalid genre ID');
+    }
+    return this.request('/discover/movie', {
+      with_genres: id,
+      page,
+      language,
+      sort_by: 'popularity.desc'
+    });
+  },
+
+  /**
    * Genre list for movies (cached).
    * @returns {Promise<{ id: number, name: string }[]>}
    */

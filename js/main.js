@@ -4,6 +4,8 @@
 
 (function () {
   const HOME_CAROUSELS = ['featured', 'editors-choice', 'recommendations'];
+  /** Genre IDs for Library rows (TMDB: 28 Action, 35 Comedy, 18 Drama, 27 Horror, 878 Sci-Fi). */
+  const LIBRARY_GENRE_IDS = [28, 35, 18, 27, 878];
 
   async function doInit() {
     State.init();
@@ -89,6 +91,7 @@
       if (viewId === section) {
         view.classList.remove('hidden');
         if (section === 'favorites') renderFavorites();
+        if (section === 'library') loadLibrary();
       } else {
         view.classList.add('hidden');
       }
@@ -201,6 +204,27 @@
     } catch (err) {
       console.error('Failed to load movies', err);
       setCarouselsMessage(HOME_CAROUSELS, 'Couldn’t load movies. Check your connection and API key.', true);
+    }
+  }
+
+  let libraryLoaded = false;
+  async function loadLibrary() {
+    if (libraryLoaded || !Api.hasKey) return;
+    libraryLoaded = true;
+    const carouselNames = LIBRARY_GENRE_IDS.map((id) => 'library-' + id);
+    setCarouselsLoading(carouselNames);
+    try {
+      await Api.getGenres();
+      const results = await Promise.all(
+        LIBRARY_GENRE_IDS.map((genreId) => Api.getMoviesByGenre(genreId, 1))
+      );
+      results.forEach((data, i) => {
+        const genreId = LIBRARY_GENRE_IDS[i];
+        renderCarousel('library-' + genreId, data.results || []);
+      });
+    } catch (err) {
+      console.error('Failed to load library', err);
+      setCarouselsMessage(carouselNames, "Couldn't load genre rows. Try again later.", true);
     }
   }
 
