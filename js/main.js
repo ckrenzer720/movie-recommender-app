@@ -6,6 +6,19 @@
   const HOME_CAROUSELS = ['featured', 'editors-choice', 'recommendations'];
   /** Genre IDs for Library rows (TMDB: 28 Action, 35 Comedy, 18 Drama, 27 Horror, 878 Sci-Fi). */
   const LIBRARY_GENRE_IDS = [28, 35, 18, 27, 878];
+  /** Section IDs used in URL hash (#home, #favorites, etc.). */
+  const VALID_SECTIONS = new Set(['home', 'new-series', 'library', 'news', 'collections', 'favorites', 'search']);
+
+  function getSectionFromHash() {
+    const hash = (location.hash || '').replace(/^#\/?/, '').trim().toLowerCase();
+    return hash && VALID_SECTIONS.has(hash) ? hash : 'home';
+  }
+
+  function setHashForSection(section) {
+    const want = section || 'home';
+    const current = (location.hash || '').replace(/^#\/?/, '').trim().toLowerCase();
+    if (current !== want) location.hash = want;
+  }
 
   async function doInit() {
     State.init();
@@ -23,7 +36,17 @@
     initSearch();
 
     window.addEventListener('sectionchange', (e) => {
-      switchView(e.detail?.section ?? State.currentSection);
+      const section = e.detail?.section ?? State.currentSection;
+      switchView(section);
+      setHashForSection(section);
+    });
+
+    window.addEventListener('hashchange', () => {
+      const section = getSectionFromHash();
+      if (section === State.currentSection) return;
+      State.setSection(section);
+      if (Nav.setActive) Nav.setActive(section);
+      switchView(section);
     });
 
     if (Api.hasKey) {
@@ -33,7 +56,11 @@
       renderPlaceholderCards();
     }
 
-    switchView(State.currentSection);
+    const section = getSectionFromHash();
+    State.setSection(section);
+    if (Nav.setActive) Nav.setActive(section);
+    switchView(section);
+    setHashForSection(section);
   }
 
   async function onAuthChange(user) {
@@ -132,6 +159,7 @@
 
     State.setSection('search');
     switchView('search');
+    setHashForSection('search');
     container.classList.add('carousel--loading');
     container.classList.remove('carousel--empty');
     container.innerHTML = '<div class="carousel__message"><div class="loading-spinner" aria-hidden="true"></div><p>Searching…</p></div>';
