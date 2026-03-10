@@ -287,6 +287,19 @@
   position: relative;
 }
 
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.modal__header .modal__favorite {
+  position: static;
+  flex-shrink: 0;
+}
+
 .placeholder {
   color: var(--color-text-muted);
   font-style: italic;

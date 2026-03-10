@@ -60,9 +60,13 @@ const Modal = {
       const rating = Utils.formatRating(movie.vote_average);
       const date = Utils.formatDate(movie.release_date);
       const overview = Utils.truncate(movie.overview, 300);
+      const isFav = State.isFavorite(movie.id);
 
       let html = `
-        <h2>${Utils.escapeHtml(movie.title)}</h2>
+        <div class="modal__header">
+          <h2>${Utils.escapeHtml(movie.title)}</h2>
+          <button type="button" class="movie-card__favorite modal__favorite ${isFav ? 'is-favorite' : ''}" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}" data-movie-id="${movie.id}">${isFav ? '♥' : '♡'}</button>
+        </div>
         <p><strong>Rating:</strong> ★ ${rating} &nbsp; <strong>Release:</strong> ${date}</p>
         <p>${Utils.escapeHtml(overview)}</p>
       `;
@@ -75,6 +79,17 @@ const Modal = {
         `;
       }
       this.content.innerHTML = html;
+      const favBtn = this.content.querySelector('.modal__favorite');
+      if (favBtn) {
+        favBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const nowFav = State.toggleFavorite(movie);
+          favBtn.classList.toggle('is-favorite', nowFav);
+          favBtn.setAttribute('aria-label', nowFav ? 'Remove from favorites' : 'Add to favorites');
+          favBtn.textContent = nowFav ? '♥' : '♡';
+          window.dispatchEvent(new CustomEvent('favoriteschanged'));
+        });
+      }
     } catch (err) {
       console.error(err);
       this.content.innerHTML = '<p class="placeholder">Could not load movie details.</p>';

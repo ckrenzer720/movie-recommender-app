@@ -49,6 +49,10 @@
       switchView(section);
     });
 
+    window.addEventListener('favoriteschanged', () => {
+      if (State.currentSection === 'favorites') renderFavorites();
+    });
+
     if (Api.hasKey) {
       loadSections();
     } else {
