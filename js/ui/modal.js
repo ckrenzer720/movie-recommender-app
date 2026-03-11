@@ -92,7 +92,14 @@ const Modal = {
       }
     } catch (err) {
       console.error(err);
-      this.content.innerHTML = '<p class="placeholder">Could not load movie details.</p>';
+      this.content.innerHTML = `
+        <p class="placeholder">Could not load movie details.</p>
+        <button type="button" class="btn btn--primary modal__retry">Try again</button>
+      `;
+      const retryBtn = this.content.querySelector('.modal__retry');
+      if (retryBtn) {
+        retryBtn.addEventListener('click', () => this.open(movieId));
+      }
     }
   },
 

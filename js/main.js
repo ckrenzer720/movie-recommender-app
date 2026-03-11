@@ -183,7 +183,12 @@
       console.error('Search failed', err);
       container.classList.remove('carousel--loading');
       container.classList.add('carousel--empty');
-      container.innerHTML = '<p class="carousel__message carousel__message--error">Search failed. Try again.</p>';
+      container.innerHTML = `
+        <p class="carousel__message carousel__message--error">Search failed.</p>
+        <button type="button" class="btn btn--primary carousel__retry">Try again</button>
+      `;
+      const retryBtn = container.querySelector('.carousel__retry');
+      if (retryBtn) retryBtn.addEventListener('click', () => runSearch(query));
     }
   }
 
@@ -235,7 +240,7 @@
       renderCarousel('recommendations', results.slice(0, 10));
     } catch (err) {
       console.error('Failed to load movies', err);
-      setCarouselsMessage(HOME_CAROUSELS, 'Couldn’t load movies. Check your connection and API key.', true);
+      setCarouselsMessage(HOME_CAROUSELS, 'Couldn’t load movies. Check your connection and API key.', true, loadSections);
     }
   }
 
@@ -256,7 +261,10 @@
       });
     } catch (err) {
       console.error('Failed to load library', err);
-      setCarouselsMessage(carouselNames, "Couldn't load genre rows. Try again later.", true);
+      setCarouselsMessage(carouselNames, "Couldn't load genre rows. Try again later.", true, () => {
+        libraryLoaded = false;
+        loadLibrary();
+      });
     }
   }
 
@@ -277,8 +285,8 @@
     names.forEach(name => setCarouselLoading(name));
   }
 
-  /** Set carousel to a message state (empty or error). Pass container or name. extraClass is optional (e.g. 'favorites-empty'). */
-  function setCarouselMessage(containerOrName, message, isError, extraClass) {
+  /** Set carousel to a message state (empty or error). Pass container or name. extraClass optional. retryCallback optional — adds "Try again" button. */
+  function setCarouselMessage(containerOrName, message, isError, extraClass, retryCallback) {
     const container = typeof containerOrName === 'string'
       ? getCarouselContainer(containerOrName)
       : containerOrName;
@@ -288,11 +296,19 @@
     let messageClass = 'carousel__message';
     if (isError) messageClass += ' carousel__message--error';
     if (extraClass) messageClass += ' ' + extraClass;
-    container.innerHTML = `<p class="${messageClass}">${Utils.escapeHtml(message)}</p>`;
+    let html = `<p class="${messageClass}">${Utils.escapeHtml(message)}</p>`;
+    if (typeof retryCallback === 'function') {
+      html += '<button type="button" class="btn btn--primary carousel__retry">Try again</button>';
+    }
+    container.innerHTML = html;
+    const retryBtn = container.querySelector('.carousel__retry');
+    if (retryBtn && typeof retryCallback === 'function') {
+      retryBtn.addEventListener('click', retryCallback);
+    }
   }
 
-  function setCarouselsMessage(names, message, isError) {
-    names.forEach(name => setCarouselMessage(name, message, isError));
+  function setCarouselsMessage(names, message, isError, retryCallback) {
+    names.forEach(name => setCarouselMessage(name, message, isError, undefined, retryCallback));
   }
 
   function renderCarousel(name, movies) {
