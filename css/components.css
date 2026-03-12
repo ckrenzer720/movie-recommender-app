@@ -6,6 +6,83 @@
   gap: var(--space-xl);
   height: 100%;
   padding: 0 var(--space-lg);
+  position: relative;
+}
+
+/* Hamburger: hidden on desktop */
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  margin: 0 var(--space-sm) 0 0;
+  background: none;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+.nav-toggle:hover {
+  background: var(--color-border);
+}
+.nav-toggle__bar {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(2) {
+  opacity: 0;
+}
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Compact bar: Home + Favorites (visible only on small screens) */
+.nav-bar-links {
+  display: none;
+  align-items: center;
+  gap: var(--space-md);
+}
+.nav-bar-links .nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 6px;
+  text-decoration: none;
+}
+.nav-link__icon {
+  font-size: 1.1em;
+}
+.nav-link__text {
+  font-size: var(--font-size-sm);
+}
+
+/* Full nav menu: on desktop this is the main row; on mobile it's the overlay */
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xl);
+  margin-left: var(--space-lg);
+}
+.nav-menu .nav-search {
+  margin-left: 0;
+}
+.nav-menu__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xl);
+  flex-wrap: wrap;
 }
 
 .nav-search {
@@ -46,11 +123,83 @@
   font-size: var(--font-size-base);
   color: var(--color-text-muted);
   transition: color 0.2s;
+  text-decoration: none;
 }
 
 .nav-link:hover,
 .nav-link.is-active {
   color: var(--color-text);
+}
+
+/* Responsive: small screens = hamburger + compact bar (Home / Favorites only) */
+@media (max-width: 768px) {
+  .main-nav {
+    justify-content: flex-start;
+    gap: 0;
+  }
+
+  .nav-toggle {
+    display: flex;
+  }
+
+  .nav-bar-links {
+    display: flex;
+  }
+
+  .nav-menu {
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    background: var(--color-bg-elevated);
+    z-index: 150;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: var(--space-lg);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+  }
+
+  .nav-menu.is-open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .nav-menu__inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-md);
+    width: 100%;
+    max-width: 280px;
+    overflow-y: auto;
+  }
+
+  .nav-menu__inner .nav-link {
+    padding: var(--space-md);
+    font-size: var(--font-size-lg);
+    border-radius: 6px;
+  }
+  .nav-menu__inner .nav-link:hover {
+    background: var(--color-border);
+  }
+
+  .nav-menu .nav-search {
+    width: 100%;
+    margin: var(--space-sm) 0;
+  }
+
+  .nav-menu .nav-search__input {
+    width: 100%;
+  }
+
+  .nav-menu .nav-auth {
+    margin: var(--space-md) 0 0;
+    margin-left: 0;
+  }
 }
 
 /* Carousel */
