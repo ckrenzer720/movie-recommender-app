@@ -9,12 +9,24 @@ const State = {
   STORAGE_KEY: 'movie-recommender-favorites',
   _saveToBackendTimer: null,
   _saveToBackendDelay: 400,
+  /** In-memory cache for section data (per section + params, not persisted). */
+  _sectionCache: {},
 
   /** Minimal fields we store per movie for rendering cards (poster, title, rating, genres). */
   favoriteMovieFields: ['id', 'title', 'poster_path', 'vote_average', 'genre_ids'],
 
   init() {
     this.loadFavorites();
+  },
+
+  /** Get cached data for a section key (e.g. "home-sections", "library"). */
+  getSectionCache(key) {
+    return this._sectionCache[key] || null;
+  },
+
+  /** Set cached data for a section key (in-memory only). */
+  setSectionCache(key, value) {
+    this._sectionCache[key] = value;
   },
 
   /**

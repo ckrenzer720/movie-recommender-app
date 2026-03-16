@@ -157,7 +157,12 @@
     if (!container) return;
 
     if (!query) {
-      container.innerHTML = '<p class="carousel__message">Type in the search box above to find movies.</p>';
+      setCarouselMessage(
+        container,
+        'Type in the search box above to find movies.',
+        false,
+        'search-empty'
+      );
       return;
     }
 
@@ -169,9 +174,12 @@
     container.innerHTML = '<div class="carousel__message"><div class="loading-spinner" aria-hidden="true"></div><p>Searching…</p></div>';
 
     if (!Api.hasKey) {
-      container.classList.remove('carousel--loading');
-      container.classList.add('carousel--empty');
-      container.innerHTML = '<p class="carousel__message">Add your TMDB API key in js/config.js to search movies.</p>';
+      setCarouselMessage(
+        container,
+        'Add your TMDB API key in js/config.js to search movies.',
+        false,
+        'search-empty'
+      );
       return;
     }
 
@@ -181,14 +189,13 @@
       renderSearchResults(container, movies, query);
     } catch (err) {
       console.error('Search failed', err);
-      container.classList.remove('carousel--loading');
-      container.classList.add('carousel--empty');
-      container.innerHTML = `
-        <p class="carousel__message carousel__message--error">Search failed.</p>
-        <button type="button" class="btn btn--primary carousel__retry">Try again</button>
-      `;
-      const retryBtn = container.querySelector('.carousel__retry');
-      if (retryBtn) retryBtn.addEventListener('click', () => runSearch(query));
+      setCarouselMessage(
+        container,
+        'Search failed.',
+        true,
+        'search-error',
+        () => runSearch(query)
+      );
     }
   }
 
@@ -197,8 +204,12 @@
     container.innerHTML = '';
 
     if (movies.length === 0) {
-      container.classList.add('carousel--empty');
-      container.innerHTML = `<p class="carousel__message">No movies found for "${Utils.escapeHtml(query)}".</p>`;
+      setCarouselMessage(
+        container,
+        `No movies found for "${query}".`,
+        false,
+        'search-empty'
+      );
       return;
     }
 
@@ -226,6 +237,16 @@
   }
 
   async function loadSections() {
+    // Reuse home carousel data within the session if we've already loaded it.
+    const cached = State.getSectionCache && State.getSectionCache('home-sections');
+    if (cached) {
+      const { popularResults, topRatedResults } = cached;
+      renderCarousel('featured', popularResults);
+      renderCarousel('editors-choice', topRatedResults);
+      renderCarousel('recommendations', popularResults.slice(0, 10));
+      return;
+    }
+
     setCarouselsLoading(HOME_CAROUSELS);
     try {
       const [popular, topRated, _] = await Promise.all([
@@ -233,11 +254,19 @@
         Api.getTopRatedMovies(1),
         Api.getGenres()
       ]);
-      const results = popular.results || [];
-      const topResults = topRated.results || [];
-      renderCarousel('featured', results);
-      renderCarousel('editors-choice', topResults);
-      renderCarousel('recommendations', results.slice(0, 10));
+      const popularResults = popular.results || [];
+      const topRatedResults = topRated.results || [];
+
+      if (State.setSectionCache) {
+        State.setSectionCache('home-sections', {
+          popularResults,
+          topRatedResults
+        });
+      }
+
+      renderCarousel('featured', popularResults);
+      renderCarousel('editors-choice', topRatedResults);
+      renderCarousel('recommendations', popularResults.slice(0, 10));
     } catch (err) {
       console.error('Failed to load movies', err);
       setCarouselsMessage(HOME_CAROUSELS, 'Couldn’t load movies. Check your connection and API key.', true, loadSections);
@@ -246,15 +275,37 @@
 
   let libraryLoaded = false;
   async function loadLibrary() {
-    if (libraryLoaded || !Api.hasKey) return;
-    libraryLoaded = true;
+    if (!Api.hasKey) return;
+
     const carouselNames = LIBRARY_GENRE_IDS.map((id) => 'library-' + id);
+
+    // Reuse cached genre rows if available so we don't refetch when revisiting Library.
+    const cached = State.getSectionCache && State.getSectionCache('library');
+    if (cached && Array.isArray(cached.byGenre) && cached.byGenre.length === LIBRARY_GENRE_IDS.length) {
+      cached.byGenre.forEach((data, i) => {
+        const genreId = LIBRARY_GENRE_IDS[i];
+        renderCarousel('library-' + genreId, (data && data.results) || []);
+      });
+      libraryLoaded = true;
+      return;
+    }
+
+    if (libraryLoaded) return;
+    libraryLoaded = true;
+
     setCarouselsLoading(carouselNames);
     try {
       await Api.getGenres();
       const results = await Promise.all(
         LIBRARY_GENRE_IDS.map((genreId) => Api.getMoviesByGenre(genreId, 1))
       );
+
+      if (State.setSectionCache) {
+        State.setSectionCache('library', {
+          byGenre: results.slice()
+        });
+      }
+
       results.forEach((data, i) => {
         const genreId = LIBRARY_GENRE_IDS[i];
         renderCarousel('library-' + genreId, data.results || []);
