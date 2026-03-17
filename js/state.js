@@ -13,10 +13,38 @@ const State = {
   _sectionCache: {},
 
   /** Minimal fields we store per movie for rendering cards (poster, title, rating, genres). */
-  favoriteMovieFields: ['id', 'title', 'poster_path', 'vote_average', 'genre_ids'],
+  favoriteMovieFields: ['id', 'title', 'poster_path', 'vote_average', 'genre_ids', 'release_date'],
 
   init() {
     this.loadFavorites();
+  },
+
+  /**
+   * Normalize a movie object (from any endpoint) into the minimal shape we persist.
+   * Ensures: { id, title, poster_path, vote_average, genre_ids, release_date }
+   */
+  normalizeMovie(movie) {
+    if (!movie || typeof movie !== 'object') return null;
+    const id = Number(movie.id);
+    if (!Number.isFinite(id)) return null;
+
+    let genreIds = [];
+    if (Array.isArray(movie.genre_ids)) {
+      genreIds = movie.genre_ids.filter((n) => typeof n === 'number' && Number.isFinite(n));
+    } else if (Array.isArray(movie.genres)) {
+      genreIds = movie.genres
+        .map((g) => g && typeof g.id === 'number' ? g.id : null)
+        .filter((n) => typeof n === 'number' && Number.isFinite(n));
+    }
+
+    return {
+      id,
+      title: typeof movie.title === 'string' ? movie.title : '',
+      poster_path: movie.poster_path ?? null,
+      vote_average: typeof movie.vote_average === 'number' ? movie.vote_average : null,
+      genre_ids: genreIds,
+      release_date: typeof movie.release_date === 'string' ? movie.release_date : ''
+    };
   },
 
   /** Get cached data for a section key (e.g. "home-sections", "library"). */
@@ -45,9 +73,9 @@ const State = {
         this.favorites = [];
         return;
       }
-      this.favorites = parsed.filter(
-        item => item && typeof item === 'object' && typeof item.id === 'number'
-      );
+      this.favorites = parsed
+        .map((item) => this.normalizeMovie(item))
+        .filter(Boolean);
     } catch (e) {
       this.favorites = [];
     }
@@ -58,12 +86,9 @@ const State = {
   },
 
   addFavorite(movie) {
-    if (!movie || typeof movie.id !== 'number') return;
-    if (this.isFavorite(movie.id)) return;
-    const minimal = {};
-    this.favoriteMovieFields.forEach(key => {
-      if (movie[key] !== undefined) minimal[key] = movie[key];
-    });
+    const minimal = this.normalizeMovie(movie);
+    if (!minimal) return;
+    if (this.isFavorite(minimal.id)) return;
     this.favorites.push(minimal);
     this.saveFavorites();
   },
@@ -89,7 +114,9 @@ const State = {
 
   /** Replace favorites (e.g. after loading from server). Saves to localStorage and, if signed in, syncs to backend. */
   setFavorites(favorites) {
-    const list = Array.isArray(favorites) ? favorites.filter(m => m && typeof m.id === 'number') : [];
+    const list = Array.isArray(favorites)
+      ? favorites.map((m) => this.normalizeMovie(m)).filter(Boolean)
+      : [];
     this.favorites = list;
     this.saveFavorites();
   },

@@ -131,6 +131,17 @@
   color: var(--color-text);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Responsive: small screens = hamburger + compact bar (Home / Favorites only) */
 @media (max-width: 768px) {
   .main-nav {

@@ -8,6 +8,7 @@ const Nav = {
   links: [],
   toggle: null,
   menu: null,
+  _previousActiveElement: null,
 
   init() {
     this.nav = document.querySelector('.main-nav');
@@ -39,10 +40,16 @@ const Nav = {
 
   openMenu() {
     if (!this.menu || !this.toggle) return;
+    this._previousActiveElement = document.activeElement;
     this.menu.classList.add('is-open');
     this.menu.setAttribute('aria-hidden', 'false');
     this.toggle.setAttribute('aria-expanded', 'true');
     this.toggle.setAttribute('aria-label', 'Close menu');
+
+    const firstFocusable = this.menu.querySelector('a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (firstFocusable && typeof firstFocusable.focus === 'function') {
+      firstFocusable.focus();
+    }
   },
 
   closeMenu() {
@@ -51,6 +58,10 @@ const Nav = {
     this.menu.setAttribute('aria-hidden', 'true');
     this.toggle.setAttribute('aria-expanded', 'false');
     this.toggle.setAttribute('aria-label', 'Open menu');
+
+    const el = this._previousActiveElement || this.toggle;
+    this._previousActiveElement = null;
+    if (el && typeof el.focus === 'function') el.focus();
   },
 
   toggleMenu() {
