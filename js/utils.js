@@ -65,5 +65,17 @@ const Utils = {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  },
+
+  /**
+   * Keep favorite button UI state consistent across card and modal.
+   * @param {HTMLButtonElement | null} button
+   * @param {boolean} isFavorite
+   */
+  applyFavoriteButtonState(button, isFavorite) {
+    if (!button) return;
+    button.classList.toggle('is-favorite', isFavorite);
+    button.setAttribute('aria-label', isFavorite ? 'Remove from favorites' : 'Add to favorites');
+    button.textContent = isFavorite ? '♥' : '♡';
   }
 };

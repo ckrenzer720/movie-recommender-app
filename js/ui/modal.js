@@ -84,9 +84,7 @@ const Modal = {
         favBtn.addEventListener('click', (e) => {
           e.preventDefault();
           const nowFav = State.toggleFavorite(movie);
-          favBtn.classList.toggle('is-favorite', nowFav);
-          favBtn.setAttribute('aria-label', nowFav ? 'Remove from favorites' : 'Add to favorites');
-          favBtn.textContent = nowFav ? '♥' : '♡';
+          Utils.applyFavoriteButtonState(favBtn, nowFav);
           window.dispatchEvent(new CustomEvent('favoriteschanged'));
         });
       }

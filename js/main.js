@@ -402,12 +402,8 @@
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const nowFav = State.toggleFavorite(movie);
-      btn.classList.toggle('is-favorite', nowFav);
-      btn.setAttribute('aria-label', nowFav ? 'Remove from favorites' : 'Add to favorites');
-      btn.textContent = nowFav ? '♥' : '♡';
-      if (State.currentSection === 'favorites') {
-        renderFavorites();
-      }
+      Utils.applyFavoriteButtonState(btn, nowFav);
+      window.dispatchEvent(new CustomEvent('favoriteschanged'));
     });
 
     card.addEventListener('click', (e) => {

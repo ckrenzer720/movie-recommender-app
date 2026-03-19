@@ -8,16 +8,32 @@ const FavoritesAPI = {
     return (window.__API_URL__ || '').replace(/\/$/, '');
   },
 
-  async getFavorites() {
-    if (!this.baseUrl || !window.Auth?.isSignedIn?.()) return [];
+  async request(path, options = {}) {
+    if (!this.baseUrl || !window.Auth?.isSignedIn?.()) return null;
     const token = await window.Auth.getAccessToken();
-    if (!token) return [];
+    if (!token) return null;
+
+    const headers = {
+      ...(options.headers || {}),
+      Authorization: 'Bearer ' + token
+    };
+
+    const res = await fetch(this.baseUrl + path, {
+      ...options,
+      headers
+    });
+
+    if (!res.ok) {
+      throw new Error(res.statusText || `HTTP ${res.status}`);
+    }
+    return res;
+  },
+
+  async getFavorites() {
     try {
-      const res = await fetch(this.baseUrl + '/api/favorites', {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (!res.ok) throw new Error(res.statusText);
-      return await res.json();
+      const res = await this.request('/api/favorites');
+      if (!res) return [];
+      return await res.json().catch(() => []);
     } catch (err) {
       console.warn('Failed to load favorites from server', err);
       return [];
@@ -25,19 +41,14 @@ const FavoritesAPI = {
   },
 
   async saveFavorites(favorites) {
-    if (!this.baseUrl || !window.Auth?.isSignedIn?.()) return;
-    const token = await window.Auth.getAccessToken();
-    if (!token) return;
     try {
-      const res = await fetch(this.baseUrl + '/api/favorites', {
+      await this.request('/api/favorites', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + token
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ favorites: Array.isArray(favorites) ? favorites : [] })
       });
-      if (!res.ok) throw new Error(res.statusText);
     } catch (err) {
       console.warn('Failed to save favorites', err);
     }
