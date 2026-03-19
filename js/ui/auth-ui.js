@@ -11,10 +11,6 @@ const AuthUI = {
     this.overlay = document.getElementById('auth-overlay');
     this.authBtn = document.getElementById('auth-btn');
     if (!this.overlay || !this.authBtn) return;
-    if (!window.Auth?.isConfigured) {
-      this.authBtn.style.display = 'none';
-      return;
-    }
 
     this.errorEl = document.getElementById('auth-error');
 
@@ -44,6 +40,7 @@ const AuthUI = {
   },
 
   async startLogin() {
+    this.open();
     this.showError('');
     if (!window.Auth) {
       this.showError('Auth not loaded. Check the console.');
@@ -88,3 +85,5 @@ const AuthUI = {
     }
   }
 };
+
+window.AuthUI = AuthUI;

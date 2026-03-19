@@ -33,6 +33,7 @@
       }
     }
     if (window.AuthUI) window.AuthUI.init();
+    else if (typeof AuthUI !== 'undefined') AuthUI.init();
     initSearch();
 
     window.addEventListener('sectionchange', (e) => {
