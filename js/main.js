@@ -21,19 +21,13 @@
   }
 
   async function doInit() {
+    if (window.AuthClient?.init) {
+      await window.AuthClient.init();
+    }
     State.init();
     Nav.init();
     Modal.init();
     Carousel.init();
-
-    if (window.Auth?.isConfigured) {
-      window.Auth.onAuthChange(onAuthChange);
-      if (window.Auth.isSignedIn()) {
-        await loadUserFavorites();
-      }
-    }
-    if (window.AuthUI) window.AuthUI.init();
-    else if (typeof AuthUI !== 'undefined') AuthUI.init();
     initSearch();
 
     window.addEventListener('sectionchange', (e) => {
@@ -54,11 +48,33 @@
       if (State.currentSection === 'favorites') renderFavorites();
     });
 
+    window.addEventListener('authchanged', () => {
+      if (window.AuthClient?.user) {
+        loadUserFavorites().then(() => {
+          if (State.currentSection === 'favorites') renderFavorites();
+        }).catch(() => {});
+      } else {
+        // Avoid showing a previous account's favorites after logout.
+        try { localStorage.removeItem(State.STORAGE_KEY); } catch (_) {}
+        State.favorites = [];
+        if (State.currentSection === 'favorites') renderFavorites();
+      }
+    });
+
     if (Api.hasKey) {
       loadSections();
     } else {
       console.info('Add your TMDB API key in js/config.js (copy from config.example.js) to load real data.');
       renderPlaceholderCards();
+    }
+
+    // If already signed in, replace localStorage favorites with backend favorites.
+    if (window.AuthClient?.user && window.FavoritesAPI?.getFavorites) {
+      try {
+        await loadUserFavorites();
+      } catch (_) {
+        // keep local favorites
+      }
     }
 
     const section = getSectionFromHash();
@@ -68,34 +84,15 @@
     setHashForSection(section);
   }
 
-  async function onAuthChange(user) {
-    if (user) {
-      await loadUserFavorites();
-    } else {
-      State.loadFavorites();
-    }
-    if (State.currentSection === 'favorites') {
-      renderFavorites();
-    }
-  }
-
   async function loadUserFavorites() {
-    if (!window.Auth?.isSignedIn?.() || !window.FavoritesAPI) return;
-    try {
-      const list = await window.FavoritesAPI.getFavorites();
-      State.setFavorites(list);
-    } catch (e) {
-      console.warn('Could not load favorites from account', e);
-    }
+    if (!window.FavoritesAPI?.getFavorites) return;
+    const list = await window.FavoritesAPI.getFavorites();
+    State.setFavorites(list);
   }
 
   function init() {
     function run() {
-      if (window.Auth) {
-        doInit();
-      } else {
-        window.addEventListener('authready', doInit, { once: true });
-      }
+      doInit();
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', run);

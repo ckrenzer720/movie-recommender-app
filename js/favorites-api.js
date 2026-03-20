@@ -1,56 +1,42 @@
 /**
- * Load/save user favorites via the backend API (Auth0 JWT + SQLite).
- * Used when user is signed in. Requires window.__API_URL__ and Auth with getAccessToken().
+ * Favorites API client (backend per-account storage).
  */
 
 const FavoritesAPI = {
-  get baseUrl() {
+  get apiBaseUrl() {
     return (window.__API_URL__ || '').replace(/\/$/, '');
   },
 
-  async request(path, options = {}) {
-    if (!this.baseUrl || !window.Auth?.isSignedIn?.()) return null;
-    const token = await window.Auth.getAccessToken();
-    if (!token) return null;
+  get token() {
+    return window.AuthClient?.token || null;
+  },
 
-    const headers = {
-      ...(options.headers || {}),
-      Authorization: 'Bearer ' + token
-    };
-
-    const res = await fetch(this.baseUrl + path, {
-      ...options,
-      headers
-    });
-
-    if (!res.ok) {
-      throw new Error(res.statusText || `HTTP ${res.status}`);
-    }
-    return res;
+  _authHeaders() {
+    if (!this.token) throw new Error('Not authenticated');
+    return { Authorization: 'Bearer ' + this.token };
   },
 
   async getFavorites() {
-    try {
-      const res = await this.request('/api/favorites');
-      if (!res) return [];
-      return await res.json().catch(() => []);
-    } catch (err) {
-      console.warn('Failed to load favorites from server', err);
-      return [];
-    }
+    const res = await fetch(this.apiBaseUrl + '/api/favorites', {
+      headers: this._authHeaders()
+    });
+    if (!res.ok) throw new Error('Could not load favorites');
+    return await res.json();
   },
 
   async saveFavorites(favorites) {
-    try {
-      await this.request('/api/favorites', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ favorites: Array.isArray(favorites) ? favorites : [] })
-      });
-    } catch (err) {
-      console.warn('Failed to save favorites', err);
-    }
+    const res = await fetch(this.apiBaseUrl + '/api/favorites', {
+      method: 'PUT',
+      headers: {
+        ...this._authHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ favorites: Array.isArray(favorites) ? favorites : [] })
+    });
+    if (!res.ok) throw new Error('Could not save favorites');
+    return await res.json();
   }
 };
+
+window.FavoritesAPI = FavoritesAPI;
+

@@ -127,11 +127,15 @@ const State = {
     } catch (e) {
       console.warn('Could not save favorites', e);
     }
-    if (window.Auth?.isSignedIn?.() && window.FavoritesAPI?.saveFavorites) {
+
+    // Persist favorites to backend when authenticated.
+    if (window.AuthClient?.token && window.FavoritesAPI?.saveFavorites) {
       if (this._saveToBackendTimer) clearTimeout(this._saveToBackendTimer);
       this._saveToBackendTimer = setTimeout(() => {
         this._saveToBackendTimer = null;
-        window.FavoritesAPI.saveFavorites(this.favorites);
+        window.FavoritesAPI.saveFavorites(this.favorites).catch(() => {
+          // Swallow errors to keep UI responsive; next interaction will retry.
+        });
       }, this._saveToBackendDelay);
     }
   },

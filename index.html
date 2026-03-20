@@ -34,22 +34,67 @@
               <input type="search" class="nav-search__input" id="search-input" placeholder="Search movies…" autocomplete="off" aria-label="Search movies" />
             </form>
             <div class="nav-auth">
-              <button type="button" class="btn btn--ghost btn--auth" id="auth-btn" aria-expanded="false" aria-haspopup="dialog" aria-label="Sign in">Sign in</button>
+              <button type="button" class="btn btn--ghost btn--auth" id="auth-btn" aria-haspopup="dialog" aria-expanded="false" aria-label="Sign in">Sign in</button>
             </div>
           </div>
         </div>
       </nav>
     </header>
 
-    <!-- Auth modal: redirect to Auth0 to sign in -->
     <div class="auth-overlay hidden" id="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-title">
-      <div class="auth-modal">
+      <div class="auth-modal" role="document">
         <button type="button" class="auth-modal__close" id="auth-close" aria-label="Close">&times;</button>
-        <h2 id="auth-title" class="auth-modal__title">Sign in to save favorites</h2>
-        <p class="auth-modal__subtitle">Your favorites will sync to your account so you can access them anywhere.</p>
+        <h2 id="auth-title" class="auth-modal__title">Sign in</h2>
+        <p class="auth-modal__subtitle">Save favorites and sync them across devices.</p>
         <p class="auth-form__error hidden" id="auth-error"></p>
-        <div class="auth-form__actions">
-          <button type="button" class="btn btn--primary" id="auth-signin-btn">Sign in with Auth0</button>
+
+        <div class="auth-modal__tabs" aria-label="Authentication mode">
+          <button type="button" class="btn btn--ghost" data-auth-mode="signin" id="tab-signin">Sign in</button>
+          <button type="button" class="btn btn--ghost" data-auth-mode="signup" id="tab-signup">Create account</button>
+        </div>
+
+        <div id="auth-mode-signin" class="auth-mode">
+          <div class="auth-form__field">
+            <label for="signin-username">Username</label>
+            <input type="text" id="signin-username" autocomplete="username" />
+          </div>
+          <div class="auth-form__field">
+            <label for="signin-password">Password</label>
+            <input type="password" id="signin-password" autocomplete="current-password" />
+          </div>
+          <div class="auth-form__actions">
+            <button type="button" class="btn btn--primary" id="signin-submit">Sign in</button>
+          </div>
+        </div>
+
+        <div id="auth-mode-signup" class="auth-mode hidden">
+          <div class="auth-form__field">
+            <label for="signup-username">Username</label>
+            <input type="text" id="signup-username" autocomplete="username" />
+          </div>
+          <div class="auth-form__field">
+            <label for="signup-email">Email</label>
+            <input type="email" id="signup-email" autocomplete="email" />
+          </div>
+          <div class="auth-form__field">
+            <label for="signup-password">Password</label>
+            <input type="password" id="signup-password" autocomplete="new-password" />
+          </div>
+          <div class="auth-form__actions">
+            <button type="button" class="btn btn--primary" id="signup-submit">Create account</button>
+          </div>
+          <p class="auth-modal__hint hidden" id="signup-hint">Check your email for a verification code.</p>
+        </div>
+
+        <div id="auth-mode-verify" class="auth-mode hidden">
+          <div class="auth-form__field">
+            <label for="verify-code">Verification code</label>
+            <input type="text" id="verify-code" autocomplete="one-time-code" />
+          </div>
+          <div class="auth-form__actions">
+            <button type="button" class="btn btn--primary" id="verify-submit">Verify email</button>
+          </div>
+          <p class="auth-modal__hint" id="verify-hint">Enter the code we sent to your email.</p>
         </div>
       </div>
     </div>
@@ -151,16 +196,12 @@
     </footer>
     <script>
       window.__TMDB_API_KEY__ = window.__TMDB_API_KEY__ || '';
-      window.__AUTH0_DOMAIN__ = window.__AUTH0_DOMAIN__ || '';
-      window.__AUTH0_CLIENT_ID__ = window.__AUTH0_CLIENT_ID__ || '';
-      window.__AUTH0_AUDIENCE__ = window.__AUTH0_AUDIENCE__ || '';
-      window.__API_URL__ = window.__API_URL__ || '';
     </script>
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/state.js"></script>
     <script src="js/utils.js"></script>
-    <script type="module" src="js/auth.js"></script>
+    <script src="js/auth-client.js"></script>
     <script src="js/favorites-api.js"></script>
     <script src="js/ui/carousel.js"></script>
     <script src="js/ui/nav.js"></script>
