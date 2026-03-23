@@ -112,16 +112,21 @@ const State = {
     return this.favorites.slice();
   },
 
-  /** Replace favorites (e.g. after loading from server). Saves to localStorage and, if signed in, syncs to backend. */
-  setFavorites(favorites) {
+  /**
+   * Replace favorites (e.g. after loading from server).
+   * options.syncBackend=false prevents writing the same server data back to backend.
+   */
+  setFavorites(favorites, options = {}) {
+    const { syncBackend = true } = options;
     const list = Array.isArray(favorites)
       ? favorites.map((m) => this.normalizeMovie(m)).filter(Boolean)
       : [];
     this.favorites = list;
-    this.saveFavorites();
+    this.saveFavorites({ syncBackend });
   },
 
-  saveFavorites() {
+  saveFavorites(options = {}) {
+    const { syncBackend = true } = options;
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.favorites));
     } catch (e) {
@@ -129,7 +134,7 @@ const State = {
     }
 
     // Persist favorites to backend when authenticated.
-    if (window.AuthClient?.token && window.FavoritesAPI?.saveFavorites) {
+    if (syncBackend && window.AuthClient?.token && window.FavoritesAPI?.saveFavorites) {
       if (this._saveToBackendTimer) clearTimeout(this._saveToBackendTimer);
       this._saveToBackendTimer = setTimeout(() => {
         this._saveToBackendTimer = null;

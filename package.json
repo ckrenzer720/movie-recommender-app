@@ -19,8 +19,5 @@
   "license": "ISC",
   "devDependencies": {
     "live-server": "^1.2.2"
-  },
-  "dependencies": {
-    "@auth0/auth0-spa-js": "^2.18.0"
   }
 }

@@ -8,6 +8,7 @@ const AuthUI = {
   closeBtn: null,
   errorEl: null,
   previousActiveElement: null,
+  isPending: false,
 
   mode: 'signin',
 
@@ -55,9 +56,18 @@ const AuthUI = {
     this.tabSignin?.addEventListener('click', () => this.setMode('signin'));
     this.tabSignup?.addEventListener('click', () => this.setMode('signup'));
 
-    this.signinSubmit?.addEventListener('click', () => this.signin());
-    this.signupSubmit?.addEventListener('click', () => this.signup());
-    this.verifySubmit?.addEventListener('click', () => this.verifyEmail());
+    this.modeSignin?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.signin();
+    });
+    this.modeSignup?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.signup();
+    });
+    this.modeVerify?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.verifyEmail();
+    });
 
     if (window.AuthClient?.onAuthChange) {
       window.AuthClient.onAuthChange(() => this.updateButton());
@@ -84,6 +94,13 @@ const AuthUI = {
     if (!this.errorEl) return;
     this.errorEl.textContent = msg;
     this.errorEl.classList.toggle('hidden', !msg);
+  },
+
+  setPending(isPending) {
+    this.isPending = Boolean(isPending);
+    [this.signinSubmit, this.signupSubmit, this.verifySubmit].forEach((btn) => {
+      if (btn) btn.disabled = this.isPending;
+    });
   },
 
   open(mode = 'signin') {
@@ -131,7 +148,9 @@ const AuthUI = {
   },
 
   async signin() {
+    if (this.isPending) return;
     try {
+      this.setPending(true);
       this.showError('');
       const username = this.signinUsername?.value?.trim();
       const password = this.signinPassword?.value;
@@ -141,11 +160,15 @@ const AuthUI = {
       this.close();
     } catch (err) {
       this.showError(err.message || 'Sign in failed.');
+    } finally {
+      this.setPending(false);
     }
   },
 
   async signup() {
+    if (this.isPending) return;
     try {
+      this.setPending(true);
       this.showError('');
       const username = this.signupUsername?.value?.trim();
       const email = this.signupEmail?.value?.trim();
@@ -164,11 +187,15 @@ const AuthUI = {
       this.setMode('verify');
     } catch (err) {
       this.showError(err.message || 'Could not create account.');
+    } finally {
+      this.setPending(false);
     }
   },
 
   async verifyEmail() {
+    if (this.isPending) return;
     try {
+      this.setPending(true);
       this.showError('');
       const token = this.verifyCode?.value?.trim();
       if (!token) return this.showError('Enter the verification code.');
@@ -180,6 +207,8 @@ const AuthUI = {
       setTimeout(() => this.showError(''), 2500);
     } catch (err) {
       this.showError(err.message || 'Verification failed.');
+    } finally {
+      this.setPending(false);
     }
   }
 };

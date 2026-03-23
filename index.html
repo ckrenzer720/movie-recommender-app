@@ -53,7 +53,7 @@
           <button type="button" class="btn btn--ghost" data-auth-mode="signup" id="tab-signup">Create account</button>
         </div>
 
-        <div id="auth-mode-signin" class="auth-mode">
+        <form id="auth-mode-signin" class="auth-mode">
           <div class="auth-form__field">
             <label for="signin-username">Username</label>
             <input type="text" id="signin-username" autocomplete="username" />
@@ -63,11 +63,11 @@
             <input type="password" id="signin-password" autocomplete="current-password" />
           </div>
           <div class="auth-form__actions">
-            <button type="button" class="btn btn--primary" id="signin-submit">Sign in</button>
+            <button type="submit" class="btn btn--primary" id="signin-submit">Sign in</button>
           </div>
-        </div>
+        </form>
 
-        <div id="auth-mode-signup" class="auth-mode hidden">
+        <form id="auth-mode-signup" class="auth-mode hidden">
           <div class="auth-form__field">
             <label for="signup-username">Username</label>
             <input type="text" id="signup-username" autocomplete="username" />
@@ -81,21 +81,21 @@
             <input type="password" id="signup-password" autocomplete="new-password" />
           </div>
           <div class="auth-form__actions">
-            <button type="button" class="btn btn--primary" id="signup-submit">Create account</button>
+            <button type="submit" class="btn btn--primary" id="signup-submit">Create account</button>
           </div>
           <p class="auth-modal__hint hidden" id="signup-hint">Check your email for a verification code.</p>
-        </div>
+        </form>
 
-        <div id="auth-mode-verify" class="auth-mode hidden">
+        <form id="auth-mode-verify" class="auth-mode hidden">
           <div class="auth-form__field">
             <label for="verify-code">Verification code</label>
             <input type="text" id="verify-code" autocomplete="one-time-code" />
           </div>
           <div class="auth-form__actions">
-            <button type="button" class="btn btn--primary" id="verify-submit">Verify email</button>
+            <button type="submit" class="btn btn--primary" id="verify-submit">Verify email</button>
           </div>
           <p class="auth-modal__hint" id="verify-hint">Enter the code we sent to your email.</p>
-        </div>
+        </form>
       </div>
     </div>
 

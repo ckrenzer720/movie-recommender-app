@@ -20,7 +20,18 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({ origin: true, credentials: true }));
+const corsOrigins = (process.env.CORS_ORIGIN || 'http://127.0.0.1:8080,http://localhost:8080')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || corsOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('CORS origin not allowed'));
+  },
+  credentials: false
+}));
 app.use(express.json());
 
 function requireAuth(req, res, next) {
@@ -44,28 +55,44 @@ function sha256Hex(input) {
   return crypto.createHash('sha256').update(String(input)).digest('hex');
 }
 
-async function sendVerificationEmail({ toEmail, username, verificationToken }) {
+let smtpTransporter = null;
+function getSmtpTransporter() {
+  if (smtpTransporter) return smtpTransporter;
   const smtpHost = process.env.SMTP_HOST;
   const smtpPort = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : null;
   const smtpUser = process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_PASS;
+  if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) return null;
+
+  smtpTransporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: { user: smtpUser, pass: smtpPass }
+  });
+  return smtpTransporter;
+}
+
+function normalizeUsername(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+async function sendVerificationEmail({ toEmail, username, verificationToken }) {
   const emailFrom = process.env.EMAIL_FROM;
 
   const devEcho = process.env.EMAIL_VERIFICATION_DEV_ECHO === 'true' || process.env.NODE_ENV === 'development';
-  if (!smtpHost || !smtpPort || !smtpUser || !smtpPass || !emailFrom) {
+  const transporter = getSmtpTransporter();
+  if (!transporter || !emailFrom) {
     if (!devEcho) {
       throw new Error('Email verification SMTP is not configured.');
     }
     // Dev-mode: do not send, caller will echo token.
     return { sent: false };
   }
-
-  const transporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpPort === 465,
-    auth: { user: smtpUser, pass: smtpPass }
-  });
 
   const safeToken = String(verificationToken);
   const subject = 'Verify your email for Movie Recommender';
@@ -85,10 +112,20 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const { username, email, password } = req.body || {};
     if (!username || !email || !password) return res.status(400).json({ error: 'username, email, and password are required.' });
-    if (String(password).length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+    const normalizedUsername = normalizeUsername(username);
+    const normalizedEmail = normalizeEmail(email);
+    const plainPassword = String(password || '');
 
-    const passwordHash = await bcrypt.hash(String(password), 12);
-    const user = createUser({ username: String(username), email: String(email).toLowerCase(), passwordHash });
+    if (!/^[a-z0-9_]{3,30}$/.test(normalizedUsername)) {
+      return res.status(400).json({ error: 'Username must be 3-30 chars (letters, numbers, underscore).' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return res.status(400).json({ error: 'Enter a valid email address.' });
+    }
+    if (plainPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+
+    const passwordHash = await bcrypt.hash(plainPassword, 12);
+    const user = createUser({ username: normalizedUsername, email: normalizedEmail, passwordHash });
 
     // Create email verification token (valid for 15 minutes)
     const verificationToken = crypto.randomBytes(24).toString('hex');
@@ -98,7 +135,7 @@ app.post('/api/auth/register', async (req, res) => {
     createEmailVerificationToken({ userId: user.id, tokenHash, expiresAt });
 
     const sendResult = await sendVerificationEmail({
-      toEmail: user.email || String(email).toLowerCase(),
+      toEmail: normalizedEmail,
       username: user.username,
       verificationToken
     });
@@ -148,7 +185,7 @@ app.post('/api/auth/login', async (req, res) => {
     const { username, password } = req.body || {};
     if (!username || !password) return res.status(400).json({ error: 'username and password are required.' });
 
-    const user = getUserByUsername(String(username));
+    const user = getUserByUsername(normalizeUsername(username));
     if (!user) return res.status(401).json({ error: 'Invalid credentials.' });
 
     const ok = await bcrypt.compare(String(password), user.password_hash);

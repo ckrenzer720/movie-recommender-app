@@ -87,7 +87,7 @@
   async function loadUserFavorites() {
     if (!window.FavoritesAPI?.getFavorites) return;
     const list = await window.FavoritesAPI.getFavorites();
-    State.setFavorites(list);
+    State.setFavorites(list, { syncBackend: false });
   }
 
   function init() {
