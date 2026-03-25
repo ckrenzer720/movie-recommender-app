@@ -62,9 +62,12 @@ const Modal = {
       const overview = Utils.truncate(movie.overview, 300);
       const isFav = State.isFavorite(movie.id);
 
+      const titleSafe = Utils.escapeHtml(movie.title);
+      const ytSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${movie.title} trailer`)}`;
+
       let html = `
         <div class="modal__header">
-          <h2>${Utils.escapeHtml(movie.title)}</h2>
+          <h2>${titleSafe}</h2>
           <button type="button" class="movie-card__favorite modal__favorite ${isFav ? 'is-favorite' : ''}" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}" data-movie-id="${movie.id}">${isFav ? '♥' : '♡'}</button>
         </div>
         <p><strong>Rating:</strong> ★ ${rating} &nbsp; <strong>Release:</strong> ${date}</p>
@@ -72,9 +75,22 @@ const Modal = {
       `;
       if (trailerKey) {
         const safeKey = Utils.escapeHtml(trailerKey);
+        const watchUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(trailerKey)}`;
         html += `
           <div class="modal__video" style="margin-top:1rem; position:relative; padding-bottom:56.25%; height:0; overflow:hidden;">
             <iframe src="https://www.youtube.com/embed/${safeKey}?autoplay=1" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;"></iframe>
+          </div>
+          <p class="modal__trailer-actions">
+            <a class="btn btn--ghost modal__youtube-link" href="${watchUrl}" target="_blank" rel="noopener noreferrer">Open trailer on YouTube</a>
+          </p>
+        `;
+      } else {
+        html += `
+          <div class="modal__trailer-section" role="region" aria-label="Trailer">
+            <p class="modal__no-trailer">No trailer is linked for this title in TMDB.</p>
+            <p class="modal__trailer-actions">
+              <a class="btn btn--ghost modal__youtube-link" href="${ytSearchUrl}" target="_blank" rel="noopener noreferrer">Search for a trailer on YouTube</a>
+            </p>
           </div>
         `;
       }
