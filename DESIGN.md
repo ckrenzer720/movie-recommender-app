@@ -2,162 +2,160 @@
 
 ## 1. Overview
 
-A web application that provides **personalized movie recommendations** with a focus on trailers, ratings, genres, descriptions, and favorites. Users browse categories (new series, library, news, collections, favorites), watch trailers, and manage a favorites list within a clean, dark-themed UI.
+A dark-themed, carousel-based movie discovery app. It pulls movie data from **TMDB** (posters, ratings, genres, details, trailers) and lets users **favorite** titles. Favorites work offline via **localStorage**, and (when signed in) sync to a **Node/Express + SQLite** backend using **JWT auth** with **email verification**.
 
 ---
 
 ## 2. Goals
 
-- Let users **discover** movies via recommendations and categories.
-- Surface **trailers**, **ratings**, **genres**, and **descriptions** for each title.
-- Support **favorites** and easy re-access to saved titles.
-- Offer an **intuitive, modern UI** with carousels and clear navigation.
-- Keep the experience **focused** (dark theme, minimal clutter).
+- **Discovery-first UI**: fast browsing via carousels and simple sections.
+- **Useful detail view**: overview + trailer embed when available (and clear fallbacks when not).
+- **Favorites that persist**: local-first UX, optional account-based sync across devices.
+- **Simple stack**: vanilla HTML/CSS/JS on the frontend; lightweight backend for auth + persistence.
 
 ---
 
-## 3. Core Features
+## 3. Current Feature Set (Implemented)
 
-| Feature | Description |
-|--------|-------------|
-| **Trailers** | Play movie trailers (embed or link) from detail view or cards. |
-| **Ratings** | Show ratings (e.g. TMDB/IMDb-style) prominently on cards and detail. |
-| **Genres & description** | Display genres and a short synopsis per movie. |
-| **Favorites** | Mark movies as favorites; persist and list in a Favorites section. |
-| **Categories** | Navigate: New series, Library, News, Collections, Favorites. |
-| **Editor's choice** | Curated section for expert picks. |
-| **Carousel browsing** | Horizontal carousels for recommendations and categories. |
-| **Watch options** | Links/placeholders to “watch film” (streaming or external). |
-
----
-
-## 4. Tech Stack (Recommended)
-
-- **Frontend:** HTML5, CSS3, JavaScript (or a framework: e.g. React/Vue for components and state).
-- **Styling:** CSS (custom) or a utility framework (e.g. Tailwind) for dark theme and layout.
-- **Data:** Public movie API (e.g. TMDB) for metadata, posters, and trailer keys.
-- **Optional:** Light backend (Node/Express) or serverless for favorites/auth if needed later.
-
-*Exact choices (e.g. React vs vanilla JS) can be decided in the next phase.*
+| Area | What exists today |
+|------|-------------------|
+| **Sections / navigation** | SPA-lite views switched by hash + nav (`home`, `new-series`, `library`, `news`, `collections`, `favorites`, `search`). Responsive hamburger menu. |
+| **Home** | Featured (popular), Editor’s choice (top rated), Recommendations (slice of popular). |
+| **Library** | Genre rows (Action/Comedy/Drama/Horror/Sci‑Fi) via TMDB Discover. In-session caching to avoid refetching. |
+| **Search** | Search input in nav with debounce; results render as cards. |
+| **Cards** | Poster, title, rating, genre names (when genres cached). Favorite toggle (♡/♥). Lazy-loaded images. |
+| **Details modal** | Loads TMDB detail (`append_to_response=videos`). Embeds YouTube trailer when TMDB provides a key; shows “no trailer” message + YouTube search fallback; includes “Open trailer on YouTube” link when available. |
+| **Auth (backend)** | Register (username/email/password), email verification code, login returns JWT, `me` endpoint. |
+| **Favorites sync (backend)** | Authenticated `GET/PUT /api/favorites` stored per-user in SQLite; frontend sync is debounced and non-blocking. |
 
 ---
 
-## 5. Project Layout & File Scaffold
+## 4. Tech Stack (Actual)
+
+### 4.1 Frontend
+
+- **HTML/CSS/Vanilla JS** (no framework)
+- Dev server: `live-server` (see root `package.json` scripts)
+
+### 4.2 Movie data
+
+- **TMDB v3 API** via `fetch` (`js/api.js`)
+- Trailer handling: TMDB `videos` → **YouTube embed** / links
+
+### 4.3 Backend (auth + favorites)
+
+- **Node.js + Express** (`server/index.js`)
+- **SQLite** via `better-sqlite3` (`server/db.js`)
+- **JWT** (`jsonwebtoken`)
+- Password hashing: **bcrypt**
+- Email: **nodemailer** (SMTP) with a dev “echo token” mode when SMTP isn’t configured
+
+---
+
+## 5. Project Layout (Current)
 
 ```
 movie-recommender-app/
-├── index.html              # Entry point / home
+├── index.html
 ├── README.md
-├── DESIGN.md               # This document
-│
+├── DESIGN.md
 ├── css/
-│   ├── reset.css           # Normalize / reset
-│   ├── variables.css       # Colors, spacing, breakpoints (dark theme)
-│   ├── layout.css          # Grid, sections, containers
-│   ├── components.css      # Cards, buttons, carousel, nav
-│   └── pages.css           # Page-specific styles
-│
+│   ├── reset.css
+│   ├── variables.css
+│   ├── layout.css
+│   ├── components.css
+│   └── pages.css
 ├── js/
-│   ├── main.js             # App init, routing (if SPA-lite)
-│   ├── api.js              # Movie API client (fetch)
-│   ├── state.js             # Favorites, UI state (or use module)
-│   ├── ui/
-│   │   ├── carousel.js     # Carousel logic
-│   │   ├── nav.js          # Top navigation
-│   │   └── modal.js        # Trailer / detail modal
-│   └── utils.js            # Helpers (format rating, date, etc.)
-│
-├── assets/
-│   ├── images/             # Logos, placeholders, icons
-│   └── fonts/              # Optional custom fonts
-│
-└── pages/                  # Optional: separate HTML pages per section
-    ├── index.html          # Or keep single index + JS views
-    ├── library.html
-    ├── favorites.html
-    └── ...
+│   ├── api.js
+│   ├── auth-client.js
+│   ├── config.js
+│   ├── favorites-api.js
+│   ├── main.js
+│   ├── state.js
+│   ├── utils.js
+│   └── ui/
+│       ├── auth-ui.js
+│       ├── carousel.js
+│       ├── modal.js
+│       └── nav.js
+└── server/
+    ├── index.js
+    ├── db.js
+    ├── .env
+    └── data/               # SQLite db files
 ```
 
-**Note:** If you later choose React/Vue, replace `js/` with `src/` and component folders (e.g. `src/components/`, `src/pages/`, `src/services/`) and a single `index.html` that mounts the app.
+---
+
+## 6. Configuration Notes
+
+### 6.1 TMDB API key (frontend)
+
+- Set `window.__TMDB_API_KEY__` via `js/config.js`.
+
+### 6.2 Backend environment (`server/.env`)
+
+Key settings used by the backend include:
+
+- `PORT` (default `3001`)
+- `CORS_ORIGIN` (comma-separated allowed origins; e.g. `http://127.0.0.1:8080`)
+- `JWT_SECRET`
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`
+- `EMAIL_VERIFICATION_DEV_ECHO` (dev convenience)
 
 ---
 
-## 6. Dependencies (Proposed)
+## 7. Phases & Status (Updated)
 
-### 6.1 No-build (vanilla) option
+1. **Phase 1 — Setup & layout** (**done**)  
+   Repo scaffold, dark theme, base layout, sections/views.
 
-- **None required** — vanilla HTML/CSS/JS.
-- Optional: **YouTube IFrame API** or simple iframe embeds for trailers.
+2. **Phase 2 — Data & listing** (**done**)  
+   TMDB integration, movie cards, genres mapping, loading/error empty states.
 
-### 6.2 If using a package manager (e.g. npm) later
+3. **Phase 3 — Detail & trailers** (**done**)  
+   Details modal with trailer embed + “no trailer” and YouTube fallback links.
 
-| Purpose | Suggestion |
-|--------|------------|
-| Movie data | Use **TMDB API** (no npm package required; `fetch` to `api.themoviedb.org`). |
-| Icons | **Lucide** or **Heroicons** (or icon font). |
-| Carousel | **Swiper** or **Embla Carousel** (or custom). |
-| Fonts | **Google Fonts** (link in HTML) or self-hosted in `assets/fonts/`. |
+4. **Phase 4 — Sections, favorites sync, and accounts** (**in progress / now active**)  
+   - **Done**: Favorites (localStorage + backend sync when signed in)  
+   - **Done**: Auth (register / verify-email / login / me)  
+   - **Done**: New Series / News / Collections sections render real TMDB carousels  
+   - **Next**: “Load more” pagination per carousel, richer “Collections” (e.g. TMDB collections endpoint), and better section copy/labels
 
-### 6.3 If using React (future)
-
-- `react`, `react-dom`
-- `vite` or `create-react-app` (or Next.js) for tooling
-- Optional: `react-router-dom`, state (Context or Zustand)
-
-### 6.4 If using a backend for favorites/user data
-
-- Node: `express`, optional DB driver (e.g. SQLite, PostgreSQL).
-- Or: Firebase / Supabase for auth + persistence.
+5. **Phase 5 — Polish** (**next**)  
+   Accessibility (focus management, ARIA audits), performance, better skeleton loading, and UI consistency.
 
 ---
 
-## 7. UI/UX Guidelines (from README)
+## 8. APIs
 
-- **Theme:** Dark background, high-contrast text for readability.
-- **Navigation:** Top bar with: New series, Library, News, Collections, Favorites.
-- **Content:** Large movie thumbnails; ratings and genres visible on cards.
-- **Carousel:** Horizontal scroll/slider for recommendation rows.
-- **Editor's choice:** Dedicated section with curated titles.
-- **Minimal:** Clean layout, strategic whitespace, focus on content.
+### 8.1 TMDB (frontend)
 
----
+- Popular: `/movie/popular`
+- Top rated: `/movie/top_rated`
+- Now playing: `/movie/now_playing`
+- Upcoming: `/movie/upcoming`
+- Search: `/search/movie`
+- Details + videos: `/movie/{id}?append_to_response=videos`
 
-## 8. Data & APIs
+### 8.2 App backend (server)
 
-- **Primary:** [The Movie Database (TMDB) API](https://www.themoviedb.org/documentation/api) — movies, posters, ratings, genres, and **trailer keys** (for YouTube).
-- **Trailers:** YouTube embed using TMDB’s `videos` endpoint (e.g. `key` for `https://www.youtube.com/watch?v={key}`).
-- **Fallback:** Consider OMDb as secondary if needed (different terms).
-
-*You will need a free TMDB API key and store it securely (e.g. env variable, not in front-end if possible; for learning, front-end is acceptable with key restriction).*
-
----
-
-## 9. Phases (High Level)
-
-1. **Phase 1 — Setup & layout**  
-   - Create repo structure, `index.html`, base CSS (variables, layout).  
-   - Static nav and one sample carousel row.
-
-2. **Phase 2 — Data & listing**  
-   - Integrate TMDB (or mock data), render movie cards with poster, title, rating, genres.
-
-3. **Phase 3 — Detail & trailers**  
-   - Movie detail view/modal; embed trailer (YouTube).
-
-4. **Phase 4 — Favorites & categories**  
-   - Favorites (e.g. localStorage); wire nav to Library, Favorites, Editor’s choice.
-
-5. **Phase 5 — Polish**  
-   - Responsive design, accessibility, performance (lazy load, image sizes).
+- `POST /api/auth/register`
+- `POST /api/auth/verify-email`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `GET /api/favorites`
+- `PUT /api/favorites`
+- `GET /api/health`
 
 ---
 
-## 10. Out of Scope (for now)
+## 9. Out of Scope (for now)
 
-- User accounts / authentication (can be added later).
-- Actual streaming (only links to trailers and optionally external watch links).
-- Backend persistence of favorites (localStorage is sufficient for v1).
+- Real streaming availability / providers (beyond trailers + external links)
+- Social features (sharing, follows)
+- Advanced personalization (ML-based recommendations)
 
 ---
 
-*Document version: 1.0 — Next step: implement Phase 1 (scaffold and index.html).*
+*Document version: 2.0 — Updated to match the current implementation (frontend + backend).*

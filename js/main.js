@@ -6,6 +6,9 @@
   const HOME_CAROUSELS = ['featured', 'editors-choice', 'recommendations'];
   /** Genre IDs for Library rows (TMDB: 28 Action, 35 Comedy, 18 Drama, 27 Horror, 878 Sci-Fi). */
   const LIBRARY_GENRE_IDS = [28, 35, 18, 27, 878];
+  const NEW_SERIES_CAROUSELS = ['new-series-now-playing', 'new-series-upcoming'];
+  const NEWS_CAROUSELS = ['news-upcoming'];
+  const COLLECTIONS_CAROUSELS = ['collections-top-rated', 'collections-popular'];
   /** Section IDs used in URL hash (#home, #favorites, etc.). */
   const VALID_SECTIONS = new Set(['home', 'new-series', 'library', 'news', 'collections', 'favorites', 'search']);
 
@@ -121,6 +124,9 @@
         view.classList.remove('hidden');
         if (section === 'favorites') renderFavorites();
         if (section === 'library') loadLibrary();
+        if (section === 'new-series') loadNewSeries();
+        if (section === 'news') loadNews();
+        if (section === 'collections') loadCollections();
       } else {
         view.classList.add('hidden');
       }
@@ -313,6 +319,106 @@
       setCarouselsMessage(carouselNames, "Couldn't load genre rows. Try again later.", true, () => {
         libraryLoaded = false;
         loadLibrary();
+      });
+    }
+  }
+
+  let newSeriesLoaded = false;
+  async function loadNewSeries() {
+    if (!Api.hasKey) return;
+
+    const cached = State.getSectionCache && State.getSectionCache('new-series');
+    if (cached && cached.nowPlaying && cached.upcoming) {
+      renderCarousel('new-series-now-playing', cached.nowPlaying.results || []);
+      renderCarousel('new-series-upcoming', cached.upcoming.results || []);
+      newSeriesLoaded = true;
+      return;
+    }
+
+    if (newSeriesLoaded) return;
+    newSeriesLoaded = true;
+
+    setCarouselsLoading(NEW_SERIES_CAROUSELS);
+    try {
+      const [nowPlaying, upcoming] = await Promise.all([
+        Api.getNowPlayingMovies(1),
+        Api.getUpcomingMovies(1)
+      ]);
+
+      if (State.setSectionCache) {
+        State.setSectionCache('new-series', { nowPlaying, upcoming });
+      }
+
+      renderCarousel('new-series-now-playing', nowPlaying.results || []);
+      renderCarousel('new-series-upcoming', upcoming.results || []);
+    } catch (err) {
+      console.error('Failed to load new series', err);
+      setCarouselsMessage(NEW_SERIES_CAROUSELS, "Couldn't load new releases. Try again.", true, () => {
+        newSeriesLoaded = false;
+        loadNewSeries();
+      });
+    }
+  }
+
+  let newsLoaded = false;
+  async function loadNews() {
+    if (!Api.hasKey) return;
+
+    const cached = State.getSectionCache && State.getSectionCache('news');
+    if (cached && cached.upcoming) {
+      renderCarousel('news-upcoming', cached.upcoming.results || []);
+      newsLoaded = true;
+      return;
+    }
+
+    if (newsLoaded) return;
+    newsLoaded = true;
+
+    setCarouselsLoading(NEWS_CAROUSELS);
+    try {
+      const upcoming = await Api.getUpcomingMovies(1);
+      if (State.setSectionCache) State.setSectionCache('news', { upcoming });
+      renderCarousel('news-upcoming', upcoming.results || []);
+    } catch (err) {
+      console.error('Failed to load news', err);
+      setCarouselsMessage(NEWS_CAROUSELS, "Couldn't load updates. Try again.", true, () => {
+        newsLoaded = false;
+        loadNews();
+      });
+    }
+  }
+
+  let collectionsLoaded = false;
+  async function loadCollections() {
+    if (!Api.hasKey) return;
+
+    const cached = State.getSectionCache && State.getSectionCache('collections');
+    if (cached && cached.topRated && cached.popular) {
+      renderCarousel('collections-top-rated', cached.topRated.results || []);
+      renderCarousel('collections-popular', cached.popular.results || []);
+      collectionsLoaded = true;
+      return;
+    }
+
+    if (collectionsLoaded) return;
+    collectionsLoaded = true;
+
+    setCarouselsLoading(COLLECTIONS_CAROUSELS);
+    try {
+      const [topRated, popular] = await Promise.all([
+        Api.getTopRatedMovies(1),
+        Api.getPopularMovies(1)
+      ]);
+
+      if (State.setSectionCache) State.setSectionCache('collections', { topRated, popular });
+
+      renderCarousel('collections-top-rated', topRated.results || []);
+      renderCarousel('collections-popular', popular.results || []);
+    } catch (err) {
+      console.error('Failed to load collections', err);
+      setCarouselsMessage(COLLECTIONS_CAROUSELS, "Couldn't load collections. Try again.", true, () => {
+        collectionsLoaded = false;
+        loadCollections();
       });
     }
   }
