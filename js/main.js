@@ -3,12 +3,16 @@
  */
 
 (function () {
-  const HOME_CAROUSELS = ['featured', 'editors-choice', 'recommendations'];
-  /** Genre IDs for Library rows (TMDB: 28 Action, 35 Comedy, 18 Drama, 27 Horror, 878 Sci-Fi). */
-  const LIBRARY_GENRE_IDS = [28, 35, 18, 27, 878];
-  const NEW_SERIES_CAROUSELS = ['new-series-now-playing', 'new-series-upcoming'];
-  const NEWS_CAROUSELS = ['news-upcoming'];
-  const COLLECTIONS_CAROUSELS = ['collections-top-rated', 'collections-popular'];
+  window.App = window.App || {};
+  window.App.const = {
+    HOME_CAROUSELS: ['featured', 'editors-choice', 'recommendations'],
+    /** Genre IDs for Library rows (TMDB: 28 Action, 35 Comedy, 18 Drama, 27 Horror, 878 Sci-Fi). */
+    LIBRARY_GENRE_IDS: [28, 35, 18, 27, 878],
+    NEW_SERIES_CAROUSELS: ['new-series-now-playing', 'new-series-upcoming'],
+    NEWS_CAROUSELS: ['news-upcoming'],
+    COLLECTIONS_CAROUSELS: ['collections-franchises', 'collections-top-rated', 'collections-popular'],
+  };
+
   /** Section IDs used in URL hash (#home, #favorites, etc.). */
   const VALID_SECTIONS = new Set(['home', 'new-series', 'library', 'news', 'collections', 'favorites', 'search']);
 
@@ -31,7 +35,9 @@
     Nav.init();
     Modal.init();
     Carousel.init();
-    initSearch();
+    if (window.App.initSearch) {
+      window.App.initSearch({ switchView, setHashForSection });
+    }
 
     window.addEventListener('sectionchange', (e) => {
       const section = e.detail?.section ?? State.currentSection;
@@ -65,7 +71,7 @@
     });
 
     if (Api.hasKey) {
-      loadSections();
+      window.App.loadHome?.();
     } else {
       console.info('Add your TMDB API key in js/config.js (copy from config.example.js) to load real data.');
       renderPlaceholderCards();
@@ -104,10 +110,6 @@
     }
   }
 
-  function getCarouselContainer(name) {
-    return document.querySelector(`[data-carousel="${name}"]`);
-  }
-
   let cachedViews = null;
   function getViews() {
     if (!cachedViews) cachedViews = document.querySelectorAll('.view[data-view]');
@@ -123,398 +125,32 @@
       if (viewId === section) {
         view.classList.remove('hidden');
         if (section === 'favorites') renderFavorites();
-        if (section === 'library') loadLibrary();
-        if (section === 'new-series') loadNewSeries();
-        if (section === 'news') loadNews();
-        if (section === 'collections') loadCollections();
+        if (section === 'library') window.App.loadLibrary?.();
+        if (section === 'new-series') window.App.loadNewSeries?.();
+        if (section === 'news') window.App.loadNews?.();
+        if (section === 'collections') window.App.loadCollections?.();
       } else {
         view.classList.add('hidden');
       }
     });
   }
 
-  const SEARCH_DEBOUNCE_MS = 350;
-  let searchDebounceTimer = null;
-
-  function initSearch() {
-    const input = document.getElementById('search-input');
-    const form = document.querySelector('.nav-search');
-    if (!input || !form) return;
-
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      runSearch(input.value.trim());
-    });
-
-    input.addEventListener('input', () => {
-      if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-      const query = input.value.trim();
-      if (!query) {
-        return;
-      }
-      searchDebounceTimer = setTimeout(() => runSearch(query), SEARCH_DEBOUNCE_MS);
-    });
-  }
-
-  async function runSearch(query) {
-    const container = document.getElementById('search-results');
-    if (!container) return;
-
-    if (!query) {
-      setCarouselMessage(
-        container,
-        'Type in the search box above to find movies.',
-        false,
-        'search-empty'
-      );
-      return;
-    }
-
-    State.setSection('search');
-    switchView('search');
-    setHashForSection('search');
-    container.classList.add('carousel--loading');
-    container.classList.remove('carousel--empty');
-    container.innerHTML = '<div class="carousel__message"><div class="loading-spinner" aria-hidden="true"></div><p>Searching…</p></div>';
-
-    if (!Api.hasKey) {
-      setCarouselMessage(
-        container,
-        'Add your TMDB API key in js/config.js to search movies.',
-        false,
-        'search-empty'
-      );
-      return;
-    }
-
-    try {
-      const data = await Api.searchMovies(query);
-      const movies = data.results || [];
-      renderSearchResults(container, movies, query);
-    } catch (err) {
-      console.error('Search failed', err);
-      setCarouselMessage(
-        container,
-        'Search failed.',
-        true,
-        'search-error',
-        () => runSearch(query)
-      );
-    }
-  }
-
-  function renderSearchResults(container, movies, query) {
-    container.classList.remove('carousel--empty', 'carousel--loading');
-    container.innerHTML = '';
-
-    if (movies.length === 0) {
-      setCarouselMessage(
-        container,
-        `No movies found for "${query}".`,
-        false,
-        'search-empty'
-      );
-      return;
-    }
-
-    const fragment = document.createDocumentFragment();
-    movies.forEach((movie) => fragment.appendChild(createMovieCard(movie)));
-    container.appendChild(fragment);
-  }
-
   function renderFavorites() {
-    const container = getCarouselContainer('favorites');
+    const container = window.App.getCarouselContainer?.('favorites');
     if (!container) return;
 
     const list = State.getFavorites();
     container.innerHTML = '';
 
     if (list.length === 0) {
-      setCarouselMessage(container, 'No favorites yet. Click the ♡ on any movie to add it here.', false, 'favorites-empty');
+      window.App.setCarouselMessage?.(container, 'No favorites yet. Click the ♡ on any movie to add it here.', false, 'favorites-empty');
       return;
     }
 
     container.classList.remove('carousel--loading', 'carousel--empty');
     const fragment = document.createDocumentFragment();
-    list.forEach(movie => fragment.appendChild(createMovieCard(movie)));
+    list.forEach(movie => fragment.appendChild(window.App.createMovieCard(movie)));
     container.appendChild(fragment);
-  }
-
-  async function loadSections() {
-    // Reuse home carousel data within the session if we've already loaded it.
-    const cached = State.getSectionCache && State.getSectionCache('home-sections');
-    if (cached) {
-      const { popularResults, topRatedResults } = cached;
-      renderCarousel('featured', popularResults);
-      renderCarousel('editors-choice', topRatedResults);
-      renderCarousel('recommendations', popularResults.slice(0, 10));
-      return;
-    }
-
-    setCarouselsLoading(HOME_CAROUSELS);
-    try {
-      const [popular, topRated, _] = await Promise.all([
-        Api.getPopularMovies(1),
-        Api.getTopRatedMovies(1),
-        Api.getGenres()
-      ]);
-      const popularResults = popular.results || [];
-      const topRatedResults = topRated.results || [];
-
-      if (State.setSectionCache) {
-        State.setSectionCache('home-sections', {
-          popularResults,
-          topRatedResults
-        });
-      }
-
-      renderCarousel('featured', popularResults);
-      renderCarousel('editors-choice', topRatedResults);
-      renderCarousel('recommendations', popularResults.slice(0, 10));
-    } catch (err) {
-      console.error('Failed to load movies', err);
-      setCarouselsMessage(HOME_CAROUSELS, 'Couldn’t load movies. Check your connection and API key.', true, loadSections);
-    }
-  }
-
-  let libraryLoaded = false;
-  async function loadLibrary() {
-    if (!Api.hasKey) return;
-
-    const carouselNames = LIBRARY_GENRE_IDS.map((id) => 'library-' + id);
-
-    // Reuse cached genre rows if available so we don't refetch when revisiting Library.
-    const cached = State.getSectionCache && State.getSectionCache('library');
-    if (cached && Array.isArray(cached.byGenre) && cached.byGenre.length === LIBRARY_GENRE_IDS.length) {
-      cached.byGenre.forEach((data, i) => {
-        const genreId = LIBRARY_GENRE_IDS[i];
-        renderCarousel('library-' + genreId, (data && data.results) || []);
-      });
-      libraryLoaded = true;
-      return;
-    }
-
-    if (libraryLoaded) return;
-    libraryLoaded = true;
-
-    setCarouselsLoading(carouselNames);
-    try {
-      await Api.getGenres();
-      const results = await Promise.all(
-        LIBRARY_GENRE_IDS.map((genreId) => Api.getMoviesByGenre(genreId, 1))
-      );
-
-      if (State.setSectionCache) {
-        State.setSectionCache('library', {
-          byGenre: results.slice()
-        });
-      }
-
-      results.forEach((data, i) => {
-        const genreId = LIBRARY_GENRE_IDS[i];
-        renderCarousel('library-' + genreId, data.results || []);
-      });
-    } catch (err) {
-      console.error('Failed to load library', err);
-      setCarouselsMessage(carouselNames, "Couldn't load genre rows. Try again later.", true, () => {
-        libraryLoaded = false;
-        loadLibrary();
-      });
-    }
-  }
-
-  let newSeriesLoaded = false;
-  async function loadNewSeries() {
-    if (!Api.hasKey) return;
-
-    const cached = State.getSectionCache && State.getSectionCache('new-series');
-    if (cached && cached.nowPlaying && cached.upcoming) {
-      renderCarousel('new-series-now-playing', cached.nowPlaying.results || []);
-      renderCarousel('new-series-upcoming', cached.upcoming.results || []);
-      newSeriesLoaded = true;
-      return;
-    }
-
-    if (newSeriesLoaded) return;
-    newSeriesLoaded = true;
-
-    setCarouselsLoading(NEW_SERIES_CAROUSELS);
-    try {
-      const [nowPlaying, upcoming] = await Promise.all([
-        Api.getNowPlayingMovies(1),
-        Api.getUpcomingMovies(1)
-      ]);
-
-      if (State.setSectionCache) {
-        State.setSectionCache('new-series', { nowPlaying, upcoming });
-      }
-
-      renderCarousel('new-series-now-playing', nowPlaying.results || []);
-      renderCarousel('new-series-upcoming', upcoming.results || []);
-    } catch (err) {
-      console.error('Failed to load new series', err);
-      setCarouselsMessage(NEW_SERIES_CAROUSELS, "Couldn't load new releases. Try again.", true, () => {
-        newSeriesLoaded = false;
-        loadNewSeries();
-      });
-    }
-  }
-
-  let newsLoaded = false;
-  async function loadNews() {
-    if (!Api.hasKey) return;
-
-    const cached = State.getSectionCache && State.getSectionCache('news');
-    if (cached && cached.upcoming) {
-      renderCarousel('news-upcoming', cached.upcoming.results || []);
-      newsLoaded = true;
-      return;
-    }
-
-    if (newsLoaded) return;
-    newsLoaded = true;
-
-    setCarouselsLoading(NEWS_CAROUSELS);
-    try {
-      const upcoming = await Api.getUpcomingMovies(1);
-      if (State.setSectionCache) State.setSectionCache('news', { upcoming });
-      renderCarousel('news-upcoming', upcoming.results || []);
-    } catch (err) {
-      console.error('Failed to load news', err);
-      setCarouselsMessage(NEWS_CAROUSELS, "Couldn't load updates. Try again.", true, () => {
-        newsLoaded = false;
-        loadNews();
-      });
-    }
-  }
-
-  let collectionsLoaded = false;
-  async function loadCollections() {
-    if (!Api.hasKey) return;
-
-    const cached = State.getSectionCache && State.getSectionCache('collections');
-    if (cached && cached.topRated && cached.popular) {
-      renderCarousel('collections-top-rated', cached.topRated.results || []);
-      renderCarousel('collections-popular', cached.popular.results || []);
-      collectionsLoaded = true;
-      return;
-    }
-
-    if (collectionsLoaded) return;
-    collectionsLoaded = true;
-
-    setCarouselsLoading(COLLECTIONS_CAROUSELS);
-    try {
-      const [topRated, popular] = await Promise.all([
-        Api.getTopRatedMovies(1),
-        Api.getPopularMovies(1)
-      ]);
-
-      if (State.setSectionCache) State.setSectionCache('collections', { topRated, popular });
-
-      renderCarousel('collections-top-rated', topRated.results || []);
-      renderCarousel('collections-popular', popular.results || []);
-    } catch (err) {
-      console.error('Failed to load collections', err);
-      setCarouselsMessage(COLLECTIONS_CAROUSELS, "Couldn't load collections. Try again.", true, () => {
-        collectionsLoaded = false;
-        loadCollections();
-      });
-    }
-  }
-
-  function setCarouselLoading(name) {
-    const container = getCarouselContainer(name);
-    if (!container) return;
-    container.classList.remove('carousel--empty');
-    container.classList.add('carousel--loading');
-    container.innerHTML = `
-      <div class="carousel__message">
-        <div class="loading-spinner" aria-hidden="true"></div>
-        <p>Loading…</p>
-      </div>
-    `;
-  }
-
-  function setCarouselsLoading(names) {
-    names.forEach(name => setCarouselLoading(name));
-  }
-
-  /** Set carousel to a message state (empty or error). Pass container or name. extraClass optional. retryCallback optional — adds "Try again" button. */
-  function setCarouselMessage(containerOrName, message, isError, extraClass, retryCallback) {
-    const container = typeof containerOrName === 'string'
-      ? getCarouselContainer(containerOrName)
-      : containerOrName;
-    if (!container) return;
-    container.classList.remove('carousel--loading');
-    container.classList.add('carousel--empty');
-    let messageClass = 'carousel__message';
-    if (isError) messageClass += ' carousel__message--error';
-    if (extraClass) messageClass += ' ' + extraClass;
-    let html = `<p class="${messageClass}">${Utils.escapeHtml(message)}</p>`;
-    if (typeof retryCallback === 'function') {
-      html += '<button type="button" class="btn btn--primary carousel__retry">Try again</button>';
-    }
-    container.innerHTML = html;
-    const retryBtn = container.querySelector('.carousel__retry');
-    if (retryBtn && typeof retryCallback === 'function') {
-      retryBtn.addEventListener('click', retryCallback);
-    }
-  }
-
-  function setCarouselsMessage(names, message, isError, retryCallback) {
-    names.forEach(name => setCarouselMessage(name, message, isError, undefined, retryCallback));
-  }
-
-  function renderCarousel(name, movies) {
-    const container = getCarouselContainer(name);
-    if (!container) return;
-    container.classList.remove('carousel--loading', 'carousel--empty');
-    container.innerHTML = '';
-    if (!movies || movies.length === 0) {
-      setCarouselMessage(container, 'No movies in this section.', false);
-      return;
-    }
-    const fragment = document.createDocumentFragment();
-    movies.forEach(movie => fragment.appendChild(createMovieCard(movie)));
-    container.appendChild(fragment);
-  }
-
-  function createMovieCard(movie) {
-    const card = document.createElement('article');
-    card.className = 'movie-card';
-    card.dataset.movieId = movie.id;
-    const posterUrl = Utils.posterUrl(movie.poster_path);
-    const rating = Utils.formatRating(movie.vote_average);
-    const genres = Api.genreIdsToNamesSync(movie.genre_ids || []);
-    const isFav = State.isFavorite(movie.id);
-
-    card.innerHTML = `
-      <div class="movie-card__poster-wrap">
-        <img class="movie-card__poster" src="${posterUrl}" alt="${Utils.escapeHtml(movie.title)}" loading="lazy">
-        <button type="button" class="movie-card__favorite ${isFav ? 'is-favorite' : ''}" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}" data-movie-id="${movie.id}">${isFav ? '♥' : '♡'}</button>
-      </div>
-      <div class="movie-card__body">
-        <h3 class="movie-card__title">${Utils.escapeHtml(movie.title)}</h3>
-        <span class="movie-card__rating">★ ${rating}</span>
-        ${genres ? `<p class="movie-card__genres">${Utils.escapeHtml(genres)}</p>` : ''}
-      </div>
-    `;
-
-    const btn = card.querySelector('.movie-card__favorite');
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const nowFav = State.toggleFavorite(movie);
-      Utils.applyFavoriteButtonState(btn, nowFav);
-      window.dispatchEvent(new CustomEvent('favoriteschanged'));
-    });
-
-    card.addEventListener('click', (e) => {
-      if (e.target.closest('.movie-card__favorite')) return;
-      Modal.open(movie.id);
-    });
-
-    return card;
   }
 
   function renderPlaceholderCards() {
@@ -523,7 +159,7 @@
       { id: 1, title: 'Movie 2', vote_average: 8.0, poster_path: null, genre_ids: [] },
       { id: 2, title: 'Movie 3', vote_average: 6.5, poster_path: null, genre_ids: [] }
     ];
-    HOME_CAROUSELS.forEach(name => renderCarousel(name, placeholders));
+    window.App.const.HOME_CAROUSELS.forEach(name => window.App.renderCarousel(name, placeholders));
   }
 
   if (document.readyState === 'loading') {

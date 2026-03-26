@@ -208,5 +208,35 @@ const Api = {
       v => v.type === 'Trailer' && v.site === 'YouTube'
     );
     return trailer?.key || null;
+  },
+
+  /**
+   * Search TMDB collections (franchises).
+   * @param {string} query
+   * @param {number} [page=1]
+   * @param {string} [language]
+   */
+  async searchCollections(query, page = 1, language = 'en-US') {
+    if (!query || String(query).trim() === '') {
+      return { results: [], page: 1, total_pages: 0, total_results: 0 };
+    }
+    return this.request('/search/collection', {
+      query: String(query).trim(),
+      page,
+      language
+    });
+  },
+
+  /**
+   * Collection details (includes "parts" movies list).
+   * @param {number} collectionId
+   * @returns {Promise<object>}
+   */
+  async getCollectionDetails(collectionId) {
+    const id = Number(collectionId);
+    if (!Number.isInteger(id) || id < 1) {
+      throw new Error('Invalid collection ID');
+    }
+    return this.request(`/collection/${id}`, { language: 'en-US' });
   }
 };
