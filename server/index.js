@@ -10,11 +10,16 @@ const {
   setFavorites,
   createUser,
   getUserByUsername,
+  getUserByEmail,
   getUserById,
   setUserVerified,
   createEmailVerificationToken,
   getEmailVerificationToken,
-  deleteEmailVerificationToken
+  deleteEmailVerificationToken,
+  createPasswordResetToken,
+  getPasswordResetToken,
+  deletePasswordResetToken,
+  setUserPasswordHash
 } = require('./db');
 
 const app = express();
@@ -108,6 +113,33 @@ async function sendVerificationEmail({ toEmail, username, verificationToken }) {
   return { sent: true };
 }
 
+async function sendPasswordResetEmail({ toEmail, username, resetToken }) {
+  const emailFrom = process.env.EMAIL_FROM;
+
+  const devEcho = process.env.EMAIL_VERIFICATION_DEV_ECHO === 'true' || process.env.NODE_ENV === 'development';
+  const transporter = getSmtpTransporter();
+  if (!transporter || !emailFrom) {
+    if (!devEcho) {
+      throw new Error('Password reset SMTP is not configured.');
+    }
+    // Dev-mode: do not send, caller will echo token.
+    return { sent: false };
+  }
+
+  const safeToken = String(resetToken);
+  const subject = 'Reset your password for Movie Recommender';
+  const text = `Hi ${username},\n\nYour password reset code is: ${safeToken}\n\nEnter this code in the app to set a new password.\n\nIf you didn’t request this, you can ignore this email.`;
+
+  await transporter.sendMail({
+    from: emailFrom,
+    to: toEmail,
+    subject,
+    text
+  });
+
+  return { sent: true };
+}
+
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { username, email, password } = req.body || {};
@@ -153,6 +185,71 @@ app.post('/api/auth/register', async (req, res) => {
     }
     console.error(err);
     return res.status(500).json({ error: 'Registration failed.' });
+  }
+});
+
+app.post('/api/auth/request-password-reset', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) return res.status(400).json({ error: 'email is required.' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return res.status(400).json({ error: 'Enter a valid email address.' });
+    }
+
+    const user = getUserByEmail(normalizedEmail);
+
+    // Always return ok to avoid email enumeration.
+    if (!user) return res.json({ ok: true });
+
+    // Create reset token (valid for 15 minutes)
+    const resetToken = crypto.randomBytes(24).toString('hex');
+    const tokenHash = sha256Hex(resetToken);
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    createPasswordResetToken({ userId: user.id, tokenHash, expiresAt });
+
+    const sendResult = await sendPasswordResetEmail({
+      toEmail: normalizedEmail,
+      username: user.username,
+      resetToken
+    });
+
+    const devEcho = process.env.EMAIL_VERIFICATION_DEV_ECHO === 'true' || process.env.NODE_ENV === 'development';
+    if (!sendResult.sent && devEcho) {
+      return res.json({ ok: true, resetToken });
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Could not request password reset.' });
+  }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { token, newPassword } = req.body || {};
+    if (!token || !newPassword) return res.status(400).json({ error: 'token and newPassword are required.' });
+    const plainPassword = String(newPassword || '');
+    if (plainPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+
+    const tokenHash = sha256Hex(token);
+    const row = getPasswordResetToken(tokenHash);
+    if (!row) return res.status(400).json({ error: 'Invalid reset code.' });
+
+    const expires = new Date(row.expires_at);
+    if (!expires || Number.isNaN(expires.getTime()) || expires.getTime() < Date.now()) {
+      deletePasswordResetToken(tokenHash);
+      return res.status(400).json({ error: 'Reset code expired.' });
+    }
+
+    const passwordHash = await bcrypt.hash(plainPassword, 12);
+    setUserPasswordHash(row.user_id, passwordHash);
+    deletePasswordResetToken(tokenHash);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Could not reset password.' });
   }
 });
 

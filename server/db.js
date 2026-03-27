@@ -37,6 +37,15 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
 `);
 
 function getFavorites(userId) {
@@ -68,6 +77,10 @@ function createUser({ username, email, passwordHash }) {
 
 function getUserByUsername(username) {
   return db.prepare('SELECT id, username, email, password_hash, is_verified, verified_at FROM users WHERE username = ?').get(username) || null;
+}
+
+function getUserByEmail(email) {
+  return db.prepare('SELECT id, username, email, password_hash, is_verified, verified_at FROM users WHERE email = ?').get(email) || null;
 }
 
 function getUserById(userId) {
@@ -102,14 +115,47 @@ function deleteEmailVerificationToken(tokenHash) {
   db.prepare(`DELETE FROM email_verification_tokens WHERE token_hash = ?`).run(tokenHash);
 }
 
+function createPasswordResetToken({ userId, tokenHash, expiresAt }) {
+  db.prepare(`
+    INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+    VALUES (?, ?, ?)
+  `).run(userId, tokenHash, expiresAt);
+}
+
+function getPasswordResetToken(tokenHash) {
+  const row = db.prepare(`
+    SELECT user_id, expires_at
+    FROM password_reset_tokens
+    WHERE token_hash = ?
+  `).get(tokenHash);
+  return row || null;
+}
+
+function deletePasswordResetToken(tokenHash) {
+  db.prepare(`DELETE FROM password_reset_tokens WHERE token_hash = ?`).run(tokenHash);
+}
+
+function setUserPasswordHash(userId, passwordHash) {
+  db.prepare(`
+    UPDATE users
+    SET password_hash = ?
+    WHERE id = ?
+  `).run(passwordHash, userId);
+}
+
 module.exports = {
   getFavorites,
   setFavorites,
   createUser,
   getUserByUsername,
+  getUserByEmail,
   getUserById,
   setUserVerified,
   createEmailVerificationToken,
   getEmailVerificationToken,
-  deleteEmailVerificationToken
+  deleteEmailVerificationToken,
+  createPasswordResetToken,
+  getPasswordResetToken,
+  deletePasswordResetToken,
+  setUserPasswordHash
 };

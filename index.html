@@ -65,6 +65,9 @@
           <div class="auth-form__actions">
             <button type="submit" class="btn btn--primary" id="signin-submit">Sign in</button>
           </div>
+          <div class="auth-form__actions auth-form__actions--secondary">
+            <button type="button" class="btn btn--ghost" id="forgot-password-btn">Forgot password?</button>
+          </div>
         </form>
 
         <form id="auth-mode-signup" class="auth-mode hidden">
@@ -95,6 +98,32 @@
             <button type="submit" class="btn btn--primary" id="verify-submit">Verify email</button>
           </div>
           <p class="auth-modal__hint" id="verify-hint">Enter the code we sent to your email.</p>
+        </form>
+
+        <form id="auth-mode-forgot" class="auth-mode hidden">
+          <div class="auth-form__field">
+            <label for="forgot-email">Email</label>
+            <input type="email" id="forgot-email" autocomplete="email" />
+          </div>
+          <div class="auth-form__actions">
+            <button type="submit" class="btn btn--primary" id="forgot-submit">Send reset code</button>
+          </div>
+          <p class="auth-modal__hint" id="forgot-hint">We’ll email you a reset code (if the address exists).</p>
+        </form>
+
+        <form id="auth-mode-reset" class="auth-mode hidden">
+          <div class="auth-form__field">
+            <label for="reset-code">Reset code</label>
+            <input type="text" id="reset-code" autocomplete="one-time-code" />
+          </div>
+          <div class="auth-form__field">
+            <label for="reset-password">New password</label>
+            <input type="password" id="reset-password" autocomplete="new-password" />
+          </div>
+          <div class="auth-form__actions">
+            <button type="submit" class="btn btn--primary" id="reset-submit">Set new password</button>
+          </div>
+          <p class="auth-modal__hint" id="reset-hint">Enter the code and choose a new password.</p>
         </form>
       </div>
     </div>

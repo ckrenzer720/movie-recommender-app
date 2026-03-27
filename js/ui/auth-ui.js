@@ -25,10 +25,14 @@ const AuthUI = {
     this.modeSignin = document.getElementById('auth-mode-signin');
     this.modeSignup = document.getElementById('auth-mode-signup');
     this.modeVerify = document.getElementById('auth-mode-verify');
+    this.modeForgot = document.getElementById('auth-mode-forgot');
+    this.modeReset = document.getElementById('auth-mode-reset');
 
     this.signinSubmit = document.getElementById('signin-submit');
     this.signupSubmit = document.getElementById('signup-submit');
     this.verifySubmit = document.getElementById('verify-submit');
+    this.forgotSubmit = document.getElementById('forgot-submit');
+    this.resetSubmit = document.getElementById('reset-submit');
 
     this.signinUsername = document.getElementById('signin-username');
     this.signinPassword = document.getElementById('signin-password');
@@ -38,6 +42,10 @@ const AuthUI = {
     this.signupPassword = document.getElementById('signup-password');
 
     this.verifyCode = document.getElementById('verify-code');
+    this.forgotEmail = document.getElementById('forgot-email');
+    this.resetCode = document.getElementById('reset-code');
+    this.resetPassword = document.getElementById('reset-password');
+    this.forgotPasswordBtn = document.getElementById('forgot-password-btn');
 
     this.overlay.addEventListener('click', (e) => {
       if (e.target === this.overlay) this.close();
@@ -69,6 +77,21 @@ const AuthUI = {
       this.verifyEmail();
     });
 
+    this.modeForgot?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.requestPasswordReset();
+    });
+
+    this.modeReset?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.resetPasswordSubmit();
+    });
+
+    this.forgotPasswordBtn?.addEventListener('click', () => {
+      this.setMode('forgot');
+      setTimeout(() => this.forgotEmail?.focus(), 0);
+    });
+
     if (window.AuthClient?.onAuthChange) {
       window.AuthClient.onAuthChange(() => this.updateButton());
     }
@@ -98,7 +121,7 @@ const AuthUI = {
 
   setPending(isPending) {
     this.isPending = Boolean(isPending);
-    [this.signinSubmit, this.signupSubmit, this.verifySubmit].forEach((btn) => {
+    [this.signinSubmit, this.signupSubmit, this.verifySubmit, this.forgotSubmit, this.resetSubmit].forEach((btn) => {
       if (btn) btn.disabled = this.isPending;
     });
   },
@@ -115,6 +138,8 @@ const AuthUI = {
       if (mode === 'signin') this.signinUsername?.focus();
       else if (mode === 'signup') this.signupUsername?.focus();
       else if (mode === 'verify') this.verifyCode?.focus();
+      else if (mode === 'forgot') this.forgotEmail?.focus();
+      else if (mode === 'reset') this.resetCode?.focus();
     }, 0);
   },
 
@@ -135,12 +160,16 @@ const AuthUI = {
       title.textContent =
         mode === 'signin' ? 'Sign in' :
         mode === 'signup' ? 'Create account' :
-        'Verify email';
+        mode === 'verify' ? 'Verify email' :
+        mode === 'forgot' ? 'Reset password' :
+        'Set new password';
     }
 
     if (this.modeSignin) this.modeSignin.classList.toggle('hidden', mode !== 'signin');
     if (this.modeSignup) this.modeSignup.classList.toggle('hidden', mode !== 'signup');
     if (this.modeVerify) this.modeVerify.classList.toggle('hidden', mode !== 'verify');
+    if (this.modeForgot) this.modeForgot.classList.toggle('hidden', mode !== 'forgot');
+    if (this.modeReset) this.modeReset.classList.toggle('hidden', mode !== 'reset');
 
     // Hint handling
     const signupHint = document.getElementById('signup-hint');
@@ -207,6 +236,49 @@ const AuthUI = {
       setTimeout(() => this.showError(''), 2500);
     } catch (err) {
       this.showError(err.message || 'Verification failed.');
+    } finally {
+      this.setPending(false);
+    }
+  }
+  ,
+
+  async requestPasswordReset() {
+    if (this.isPending) return;
+    try {
+      this.setPending(true);
+      this.showError('');
+      const email = this.forgotEmail?.value?.trim();
+      if (!email) return this.showError('Enter your email address.');
+
+      const data = await window.AuthClient.requestPasswordReset({ email });
+      if (data?.resetToken) {
+        if (this.resetCode) this.resetCode.value = data.resetToken;
+      } else {
+        if (this.resetCode) this.resetCode.value = '';
+      }
+      this.setMode('reset');
+    } catch (err) {
+      this.showError(err.message || 'Could not request password reset.');
+    } finally {
+      this.setPending(false);
+    }
+  },
+
+  async resetPasswordSubmit() {
+    if (this.isPending) return;
+    try {
+      this.setPending(true);
+      this.showError('');
+      const token = this.resetCode?.value?.trim();
+      const newPassword = this.resetPassword?.value;
+      if (!token || !newPassword) return this.showError('Enter the reset code and a new password.');
+
+      await window.AuthClient.resetPassword({ token, newPassword });
+      this.setMode('signin');
+      this.showError('Password updated. You can sign in now.');
+      setTimeout(() => this.showError(''), 2500);
+    } catch (err) {
+      this.showError(err.message || 'Could not reset password.');
     } finally {
       this.setPending(false);
     }

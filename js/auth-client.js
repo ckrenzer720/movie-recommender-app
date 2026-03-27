@@ -4,6 +4,8 @@
  * - POST /api/auth/register
  * - POST /api/auth/verify-email
  * - POST /api/auth/login
+ * - POST /api/auth/request-password-reset
+ * - POST /api/auth/reset-password
  * - GET  /api/auth/me
  *
  * Stores JWT in localStorage.
@@ -118,6 +120,22 @@ const AuthClient = {
     this._notify();
 
     return this.user;
+  },
+
+  async requestPasswordReset({ email }) {
+    const res = await this.request('/api/auth/request-password-reset', {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    });
+    return res.json();
+  },
+
+  async resetPassword({ token, newPassword }) {
+    const res = await this.request('/api/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword })
+    });
+    return res.json();
   },
 
   logout() {
