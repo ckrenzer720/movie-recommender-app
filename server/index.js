@@ -39,6 +39,50 @@ app.use(cors({
 }));
 app.use(express.json());
 
+/**
+ * Lightweight in-memory rate limiting.
+ * Note: this is per-process (not shared across servers) and resets on restart.
+ */
+const rateLimitStore = new Map();
+function rateLimit({ windowMs, max, keyFn, message }) {
+  const win = Number(windowMs) || 60000;
+  const limit = Number(max) || 60;
+  const getKey = typeof keyFn === 'function' ? keyFn : (req) => req.ip;
+  const msg = message || 'Too many requests. Try again soon.';
+
+  return function rateLimitMiddleware(req, res, next) {
+    try {
+      const now = Date.now();
+      const key = String(getKey(req) || req.ip || 'unknown');
+      const entry = rateLimitStore.get(key);
+
+      if (!entry || entry.resetAt <= now) {
+        rateLimitStore.set(key, { count: 1, resetAt: now + win });
+        return next();
+      }
+
+      entry.count += 1;
+      if (entry.count <= limit) return next();
+
+      const retryAfterSec = Math.max(1, Math.ceil((entry.resetAt - now) / 1000));
+      res.set('Retry-After', String(retryAfterSec));
+      return res.status(429).json({ error: msg, retryAfterSec });
+    } catch (err) {
+      // If limiter fails, don't block legitimate traffic.
+      return next();
+    }
+  };
+}
+
+function cleanupRateLimitStore() {
+  const now = Date.now();
+  // Avoid unbounded growth: remove expired entries.
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (!entry || entry.resetAt <= now) rateLimitStore.delete(key);
+  }
+}
+setInterval(cleanupRateLimitStore, 5 * 60 * 1000).unref?.();
+
 function requireAuth(req, res, next) {
   const secret = process.env.JWT_SECRET;
   if (!secret) return res.status(500).json({ error: 'Server misconfigured: JWT_SECRET missing.' });
@@ -140,7 +184,15 @@ async function sendPasswordResetEmail({ toEmail, username, resetToken }) {
   return { sent: true };
 }
 
-app.post('/api/auth/register', async (req, res) => {
+app.post(
+  '/api/auth/register',
+  rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    keyFn: (req) => `register:${req.ip}`,
+    message: 'Too many registration attempts. Please try again later.'
+  }),
+  async (req, res) => {
   try {
     const { username, email, password } = req.body || {};
     if (!username || !email || !password) return res.status(400).json({ error: 'username, email, and password are required.' });
@@ -188,45 +240,62 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-app.post('/api/auth/request-password-reset', async (req, res) => {
-  try {
-    const { email } = req.body || {};
-    const normalizedEmail = normalizeEmail(email);
-    if (!normalizedEmail) return res.status(400).json({ error: 'email is required.' });
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      return res.status(400).json({ error: 'Enter a valid email address.' });
+app.post(
+  '/api/auth/request-password-reset',
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    keyFn: (req) => `pwreset_req:${req.ip}`,
+    message: 'Too many password reset requests. Please try again later.'
+  }),
+  async (req, res) => {
+    try {
+      const { email } = req.body || {};
+      const normalizedEmail = normalizeEmail(email);
+      if (!normalizedEmail) return res.status(400).json({ error: 'email is required.' });
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+        return res.status(400).json({ error: 'Enter a valid email address.' });
+      }
+
+      const user = getUserByEmail(normalizedEmail);
+
+      // Always return ok to avoid email enumeration.
+      if (!user) return res.json({ ok: true });
+
+      // Create reset token (valid for 15 minutes)
+      const resetToken = crypto.randomBytes(24).toString('hex');
+      const tokenHash = sha256Hex(resetToken);
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+      createPasswordResetToken({ userId: user.id, tokenHash, expiresAt });
+
+      const sendResult = await sendPasswordResetEmail({
+        toEmail: normalizedEmail,
+        username: user.username,
+        resetToken
+      });
+
+      const devEcho = process.env.EMAIL_VERIFICATION_DEV_ECHO === 'true' || process.env.NODE_ENV === 'development';
+      if (!sendResult.sent && devEcho) {
+        return res.json({ ok: true, resetToken });
+      }
+
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Could not request password reset.' });
     }
-
-    const user = getUserByEmail(normalizedEmail);
-
-    // Always return ok to avoid email enumeration.
-    if (!user) return res.json({ ok: true });
-
-    // Create reset token (valid for 15 minutes)
-    const resetToken = crypto.randomBytes(24).toString('hex');
-    const tokenHash = sha256Hex(resetToken);
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-    createPasswordResetToken({ userId: user.id, tokenHash, expiresAt });
-
-    const sendResult = await sendPasswordResetEmail({
-      toEmail: normalizedEmail,
-      username: user.username,
-      resetToken
-    });
-
-    const devEcho = process.env.EMAIL_VERIFICATION_DEV_ECHO === 'true' || process.env.NODE_ENV === 'development';
-    if (!sendResult.sent && devEcho) {
-      return res.json({ ok: true, resetToken });
-    }
-
-    return res.json({ ok: true });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Could not request password reset.' });
   }
-});
+);
 
-app.post('/api/auth/reset-password', async (req, res) => {
+app.post(
+  '/api/auth/reset-password',
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 8,
+    keyFn: (req) => `pwreset_do:${req.ip}`,
+    message: 'Too many reset attempts. Please try again later.'
+  }),
+  async (req, res) => {
   try {
     const { token, newPassword } = req.body || {};
     if (!token || !newPassword) return res.status(400).json({ error: 'token and newPassword are required.' });
@@ -253,7 +322,15 @@ app.post('/api/auth/reset-password', async (req, res) => {
   }
 });
 
-app.post('/api/auth/verify-email', async (req, res) => {
+app.post(
+  '/api/auth/verify-email',
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    keyFn: (req) => `verify:${req.ip}`,
+    message: 'Too many verification attempts. Please try again later.'
+  }),
+  async (req, res) => {
   try {
     const { token } = req.body || {};
     if (!token) return res.status(400).json({ error: 'token is required.' });
@@ -277,7 +354,18 @@ app.post('/api/auth/verify-email', async (req, res) => {
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post(
+  '/api/auth/login',
+  rateLimit({
+    windowMs: 60 * 1000,
+    max: 12,
+    keyFn: (req) => {
+      const u = normalizeUsername(req.body?.username);
+      return `login:${req.ip}:${u || 'unknown'}`;
+    },
+    message: 'Too many login attempts. Please wait a moment and try again.'
+  }),
+  async (req, res) => {
   try {
     const { username, password } = req.body || {};
     if (!username || !password) return res.status(400).json({ error: 'username and password are required.' });
