@@ -102,6 +102,10 @@ function createEmailVerificationToken({ userId, tokenHash, expiresAt }) {
   `).run(userId, tokenHash, expiresAt);
 }
 
+function deleteEmailVerificationTokensForUser(userId) {
+  db.prepare(`DELETE FROM email_verification_tokens WHERE user_id = ?`).run(userId);
+}
+
 function getEmailVerificationToken(tokenHash) {
   const row = db.prepare(`
     SELECT user_id, expires_at
@@ -115,11 +119,21 @@ function deleteEmailVerificationToken(tokenHash) {
   db.prepare(`DELETE FROM email_verification_tokens WHERE token_hash = ?`).run(tokenHash);
 }
 
+function deleteExpiredEmailVerificationTokens() {
+  // expires_at stored as ISO string; lexical compare works (YYYY-MM-DDTHH:mm:ss.sssZ)
+  const nowIso = new Date().toISOString();
+  return db.prepare(`DELETE FROM email_verification_tokens WHERE expires_at < ?`).run(nowIso).changes;
+}
+
 function createPasswordResetToken({ userId, tokenHash, expiresAt }) {
   db.prepare(`
     INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
     VALUES (?, ?, ?)
   `).run(userId, tokenHash, expiresAt);
+}
+
+function deletePasswordResetTokensForUser(userId) {
+  db.prepare(`DELETE FROM password_reset_tokens WHERE user_id = ?`).run(userId);
 }
 
 function getPasswordResetToken(tokenHash) {
@@ -133,6 +147,11 @@ function getPasswordResetToken(tokenHash) {
 
 function deletePasswordResetToken(tokenHash) {
   db.prepare(`DELETE FROM password_reset_tokens WHERE token_hash = ?`).run(tokenHash);
+}
+
+function deleteExpiredPasswordResetTokens() {
+  const nowIso = new Date().toISOString();
+  return db.prepare(`DELETE FROM password_reset_tokens WHERE expires_at < ?`).run(nowIso).changes;
 }
 
 function setUserPasswordHash(userId, passwordHash) {
@@ -152,10 +171,14 @@ module.exports = {
   getUserById,
   setUserVerified,
   createEmailVerificationToken,
+  deleteEmailVerificationTokensForUser,
   getEmailVerificationToken,
   deleteEmailVerificationToken,
+  deleteExpiredEmailVerificationTokens,
   createPasswordResetToken,
+  deletePasswordResetTokensForUser,
   getPasswordResetToken,
   deletePasswordResetToken,
+  deleteExpiredPasswordResetTokens,
   setUserPasswordHash
 };

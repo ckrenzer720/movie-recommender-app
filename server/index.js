@@ -14,11 +14,15 @@ const {
   getUserById,
   setUserVerified,
   createEmailVerificationToken,
+  deleteEmailVerificationTokensForUser,
   getEmailVerificationToken,
   deleteEmailVerificationToken,
+  deleteExpiredEmailVerificationTokens,
   createPasswordResetToken,
+  deletePasswordResetTokensForUser,
   getPasswordResetToken,
   deletePasswordResetToken,
+  deleteExpiredPasswordResetTokens,
   setUserPasswordHash
 } = require('./db');
 
@@ -82,6 +86,16 @@ function cleanupRateLimitStore() {
   }
 }
 setInterval(cleanupRateLimitStore, 5 * 60 * 1000).unref?.();
+
+function cleanupAuthTokenTables() {
+  try {
+    deleteExpiredEmailVerificationTokens();
+    deleteExpiredPasswordResetTokens();
+  } catch (_) {
+    // best-effort cleanup
+  }
+}
+setInterval(cleanupAuthTokenTables, 10 * 60 * 1000).unref?.();
 
 function requireAuth(req, res, next) {
   const secret = process.env.JWT_SECRET;
@@ -216,6 +230,8 @@ app.post(
     const tokenHash = sha256Hex(verificationToken);
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
+    // Only one active token per user at a time.
+    deleteEmailVerificationTokensForUser(user.id);
     createEmailVerificationToken({ userId: user.id, tokenHash, expiresAt });
 
     const sendResult = await sendVerificationEmail({
@@ -266,6 +282,8 @@ app.post(
       const resetToken = crypto.randomBytes(24).toString('hex');
       const tokenHash = sha256Hex(resetToken);
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+      // Only one active reset token per user at a time.
+      deletePasswordResetTokensForUser(user.id);
       createPasswordResetToken({ userId: user.id, tokenHash, expiresAt });
 
       const sendResult = await sendPasswordResetEmail({
