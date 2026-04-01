@@ -48,6 +48,11 @@
         <p class="auth-modal__subtitle">Save favorites and sync them across devices.</p>
         <p class="auth-form__error hidden" id="auth-error"></p>
 
+        <div class="auth-signed-in hidden" id="auth-signed-in" aria-label="Account">
+          <p class="auth-signed-in__label" id="auth-signed-in-label">Signed in</p>
+          <button type="button" class="btn btn--ghost" id="auth-signout-btn">Sign out</button>
+        </div>
+
         <div class="auth-modal__tabs" aria-label="Authentication mode">
           <button type="button" class="btn btn--ghost" data-auth-mode="signin" id="tab-signin">Sign in</button>
           <button type="button" class="btn btn--ghost" data-auth-mode="signup" id="tab-signup">Create account</button>
@@ -119,6 +124,11 @@
           <div class="auth-form__field">
             <label for="reset-password">New password</label>
             <input type="password" id="reset-password" autocomplete="new-password" />
+          </div>
+          <p class="auth-modal__hint" id="reset-strength-hint">Use 8+ characters. Tip: add numbers + symbols.</p>
+          <div class="auth-form__field">
+            <label for="reset-password-confirm">Confirm new password</label>
+            <input type="password" id="reset-password-confirm" autocomplete="new-password" />
           </div>
           <div class="auth-form__actions">
             <button type="submit" class="btn btn--primary" id="reset-submit">Set new password</button>

@@ -21,6 +21,9 @@ const AuthUI = {
 
     this.tabSignin = document.getElementById('tab-signin');
     this.tabSignup = document.getElementById('tab-signup');
+    this.signedInPanel = document.getElementById('auth-signed-in');
+    this.signedInLabel = document.getElementById('auth-signed-in-label');
+    this.signOutBtn = document.getElementById('auth-signout-btn');
 
     this.modeSignin = document.getElementById('auth-mode-signin');
     this.modeSignup = document.getElementById('auth-mode-signup');
@@ -45,6 +48,8 @@ const AuthUI = {
     this.forgotEmail = document.getElementById('forgot-email');
     this.resetCode = document.getElementById('reset-code');
     this.resetPassword = document.getElementById('reset-password');
+    this.resetPasswordConfirm = document.getElementById('reset-password-confirm');
+    this.resetStrengthHint = document.getElementById('reset-strength-hint');
     this.forgotPasswordBtn = document.getElementById('forgot-password-btn');
 
     this.overlay.addEventListener('click', (e) => {
@@ -55,7 +60,8 @@ const AuthUI = {
 
     this.authBtn.addEventListener('click', () => {
       if (window.AuthClient?.user) {
-        window.AuthClient.logout();
+        // Open modal so user can sign out explicitly.
+        this.open('signin');
         return;
       }
       this.open('signin');
@@ -92,10 +98,21 @@ const AuthUI = {
       setTimeout(() => this.forgotEmail?.focus(), 0);
     });
 
+    this.signOutBtn?.addEventListener('click', () => {
+      window.AuthClient?.logout?.();
+      this.close();
+    });
+
+    this.resetPassword?.addEventListener('input', () => this.updatePasswordStrengthHint());
+
     if (window.AuthClient?.onAuthChange) {
-      window.AuthClient.onAuthChange(() => this.updateButton());
+      window.AuthClient.onAuthChange(() => {
+        this.updateButton();
+        this.updateSignedInPanel();
+      });
     }
     this.updateButton();
+    this.updateSignedInPanel();
 
     // Start focused on sign-in mode.
     this.setMode('signin');
@@ -106,10 +123,24 @@ const AuthUI = {
     if (window.AuthClient?.user) {
       const username = window.AuthClient.user.username || 'Account';
       this.authBtn.textContent = username;
-      this.authBtn.setAttribute('aria-label', 'Sign out');
+      this.authBtn.setAttribute('aria-label', 'Account');
     } else {
       this.authBtn.textContent = 'Sign in';
       this.authBtn.setAttribute('aria-label', 'Sign in');
+    }
+  },
+
+  updateSignedInPanel() {
+    if (!this.signedInPanel) return;
+    const user = window.AuthClient?.user;
+    const isSignedIn = Boolean(user);
+    this.signedInPanel.classList.toggle('hidden', !isSignedIn);
+    this.tabSignin?.classList.toggle('hidden', isSignedIn);
+    this.tabSignup?.classList.toggle('hidden', isSignedIn);
+
+    if (isSignedIn && this.signedInLabel) {
+      const username = user?.username || 'Account';
+      this.signedInLabel.textContent = `Signed in as ${username}`;
     }
   },
 
@@ -163,6 +194,16 @@ const AuthUI = {
         mode === 'verify' ? 'Verify email' :
         mode === 'forgot' ? 'Reset password' :
         'Set new password';
+    }
+
+    // If signed in, don't show auth forms.
+    if (window.AuthClient?.user) {
+      if (this.modeSignin) this.modeSignin.classList.add('hidden');
+      if (this.modeSignup) this.modeSignup.classList.add('hidden');
+      if (this.modeVerify) this.modeVerify.classList.add('hidden');
+      if (this.modeForgot) this.modeForgot.classList.add('hidden');
+      if (this.modeReset) this.modeReset.classList.add('hidden');
+      return;
     }
 
     if (this.modeSignin) this.modeSignin.classList.toggle('hidden', mode !== 'signin');
@@ -271,7 +312,10 @@ const AuthUI = {
       this.showError('');
       const token = this.resetCode?.value?.trim();
       const newPassword = this.resetPassword?.value;
-      if (!token || !newPassword) return this.showError('Enter the reset code and a new password.');
+      const confirm = this.resetPasswordConfirm?.value;
+      if (!token || !newPassword || !confirm) return this.showError('Enter the reset code and confirm your new password.');
+      if (newPassword.length < 8) return this.showError('Password must be at least 8 characters.');
+      if (newPassword !== confirm) return this.showError('Passwords do not match.');
 
       await window.AuthClient.resetPassword({ token, newPassword });
       this.setMode('signin');
@@ -282,6 +326,32 @@ const AuthUI = {
     } finally {
       this.setPending(false);
     }
+  }
+  ,
+
+  updatePasswordStrengthHint() {
+    if (!this.resetStrengthHint || !this.resetPassword) return;
+    const pwd = String(this.resetPassword.value || '');
+    if (!pwd) {
+      this.resetStrengthHint.textContent = 'Use 8+ characters. Tip: add numbers + symbols.';
+      return;
+    }
+    const hasLen = pwd.length >= 8;
+    const hasUpper = /[A-Z]/.test(pwd);
+    const hasLower = /[a-z]/.test(pwd);
+    const hasNum = /[0-9]/.test(pwd);
+    const hasSym = /[^A-Za-z0-9]/.test(pwd);
+
+    const parts = [
+      hasLen ? '8+ chars' : '8+ chars',
+      hasUpper ? 'uppercase' : 'uppercase',
+      hasLower ? 'lowercase' : 'lowercase',
+      hasNum ? 'number' : 'number',
+      hasSym ? 'symbol' : 'symbol'
+    ];
+    const score = [hasLen, hasUpper, hasLower, hasNum, hasSym].filter(Boolean).length;
+    const label = score >= 4 ? 'Strong' : score >= 3 ? 'Good' : 'Weak';
+    this.resetStrengthHint.textContent = `Password strength: ${label} (${parts.join(', ')})`;
   }
 };
 
