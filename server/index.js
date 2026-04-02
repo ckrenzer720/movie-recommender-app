@@ -144,22 +144,24 @@ function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
 
-async function sendVerificationEmail({ toEmail, username, verificationToken }) {
-  const emailFrom = process.env.EMAIL_FROM;
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || ''));
+}
 
-  const devEcho = process.env.EMAIL_VERIFICATION_DEV_ECHO === 'true' || process.env.NODE_ENV === 'development';
+function isDevEchoMode() {
+  return process.env.EMAIL_VERIFICATION_DEV_ECHO === 'true' || process.env.NODE_ENV === 'development';
+}
+
+async function sendTextEmail({ toEmail, subject, text }) {
+  const emailFrom = process.env.EMAIL_FROM;
   const transporter = getSmtpTransporter();
   if (!transporter || !emailFrom) {
-    if (!devEcho) {
-      throw new Error('Email verification SMTP is not configured.');
+    if (!isDevEchoMode()) {
+      throw new Error('SMTP is not configured.');
     }
     // Dev-mode: do not send, caller will echo token.
     return { sent: false };
   }
-
-  const safeToken = String(verificationToken);
-  const subject = 'Verify your email for Movie Recommender';
-  const text = `Hi ${username},\n\nYour verification code is: ${safeToken}\n\nEnter this code in the app to verify your email.`;
 
   await transporter.sendMail({
     from: emailFrom,
@@ -171,31 +173,22 @@ async function sendVerificationEmail({ toEmail, username, verificationToken }) {
   return { sent: true };
 }
 
-async function sendPasswordResetEmail({ toEmail, username, resetToken }) {
-  const emailFrom = process.env.EMAIL_FROM;
-
-  const devEcho = process.env.EMAIL_VERIFICATION_DEV_ECHO === 'true' || process.env.NODE_ENV === 'development';
-  const transporter = getSmtpTransporter();
-  if (!transporter || !emailFrom) {
-    if (!devEcho) {
-      throw new Error('Password reset SMTP is not configured.');
-    }
-    // Dev-mode: do not send, caller will echo token.
-    return { sent: false };
-  }
-
-  const safeToken = String(resetToken);
-  const subject = 'Reset your password for Movie Recommender';
-  const text = `Hi ${username},\n\nYour password reset code is: ${safeToken}\n\nEnter this code in the app to set a new password.\n\nIf you didn’t request this, you can ignore this email.`;
-
-  await transporter.sendMail({
-    from: emailFrom,
-    to: toEmail,
-    subject,
-    text
+async function sendVerificationEmail({ toEmail, username, verificationToken }) {
+  const safeToken = String(verificationToken);
+  return sendTextEmail({
+    toEmail,
+    subject: 'Verify your email for Movie Recommender',
+    text: `Hi ${username},\n\nYour verification code is: ${safeToken}\n\nEnter this code in the app to verify your email.`
   });
+}
 
-  return { sent: true };
+async function sendPasswordResetEmail({ toEmail, username, resetToken }) {
+  const safeToken = String(resetToken);
+  return sendTextEmail({
+    toEmail,
+    subject: 'Reset your password for Movie Recommender',
+    text: `Hi ${username},\n\nYour password reset code is: ${safeToken}\n\nEnter this code in the app to set a new password.\n\nIf you didn’t request this, you can ignore this email.`
+  });
 }
 
 app.post(
@@ -240,8 +233,7 @@ app.post(
       verificationToken
     });
 
-    const devEcho = process.env.EMAIL_VERIFICATION_DEV_ECHO === 'true' || process.env.NODE_ENV === 'development';
-    if (!sendResult.sent && devEcho) {
+    if (!sendResult.sent && isDevEchoMode()) {
       return res.json({ ok: true, verificationToken });
     }
 
@@ -269,7 +261,7 @@ app.post(
       const { email } = req.body || {};
       const normalizedEmail = normalizeEmail(email);
       if (!normalizedEmail) return res.status(400).json({ error: 'email is required.' });
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      if (!isValidEmail(normalizedEmail)) {
         return res.status(400).json({ error: 'Enter a valid email address.' });
       }
 
@@ -292,8 +284,7 @@ app.post(
         resetToken
       });
 
-      const devEcho = process.env.EMAIL_VERIFICATION_DEV_ECHO === 'true' || process.env.NODE_ENV === 'development';
-      if (!sendResult.sent && devEcho) {
+      if (!sendResult.sent && isDevEchoMode()) {
         return res.json({ ok: true, resetToken });
       }
 

@@ -5,6 +5,15 @@
 (function () {
   window.App = window.App || {};
 
+  function renderPagedRow(name, data, fetchPage) {
+    window.App.renderCarousel(name, (data && data.results) || []);
+    window.App.setPagination(name, {
+      page: data?.page || 1,
+      totalPages: data?.total_pages || 0,
+      fetchPage
+    });
+  }
+
   async function loadHome() {
     const { HOME_CAROUSELS } = window.App.const || {};
 
@@ -50,19 +59,8 @@
         });
       }
 
-      window.App.renderCarousel('featured', popularResults);
-      window.App.setPagination('featured', {
-        page: popular.page || 1,
-        totalPages: popular.total_pages || 0,
-        fetchPage: (p) => Api.getPopularMovies(p)
-      });
-
-      window.App.renderCarousel('editors-choice', topRatedResults);
-      window.App.setPagination('editors-choice', {
-        page: topRated.page || 1,
-        totalPages: topRated.total_pages || 0,
-        fetchPage: (p) => Api.getTopRatedMovies(p)
-      });
+      renderPagedRow('featured', popular, (p) => Api.getPopularMovies(p));
+      renderPagedRow('editors-choice', topRated, (p) => Api.getTopRatedMovies(p));
 
       window.App.renderCarousel('recommendations', popularResults.slice(0, 10));
     } catch (err) {
@@ -82,12 +80,7 @@
       cached.byGenre.forEach((data, i) => {
         const genreId = LIBRARY_GENRE_IDS[i];
         const name = 'library-' + genreId;
-        window.App.renderCarousel(name, (data && data.results) || []);
-        window.App.setPagination(name, {
-          page: data?.page || 1,
-          totalPages: data?.total_pages || 0,
-          fetchPage: (p) => Api.getMoviesByGenre(genreId, p)
-        });
+        renderPagedRow(name, data, (p) => Api.getMoviesByGenre(genreId, p));
       });
       libraryLoaded = true;
       return;
@@ -112,12 +105,7 @@
       results.forEach((data, i) => {
         const genreId = LIBRARY_GENRE_IDS[i];
         const name = 'library-' + genreId;
-        window.App.renderCarousel(name, data.results || []);
-        window.App.setPagination(name, {
-          page: data?.page || 1,
-          totalPages: data?.total_pages || 0,
-          fetchPage: (p) => Api.getMoviesByGenre(genreId, p)
-        });
+        renderPagedRow(name, data, (p) => Api.getMoviesByGenre(genreId, p));
       });
     } catch (err) {
       console.error('Failed to load library', err);
@@ -135,19 +123,8 @@
 
     const cached = State.getSectionCache && State.getSectionCache('new-series');
     if (cached && cached.nowPlaying && cached.upcoming) {
-      window.App.renderCarousel('new-series-now-playing', cached.nowPlaying.results || []);
-      window.App.setPagination('new-series-now-playing', {
-        page: cached.nowPlaying.page || 1,
-        totalPages: cached.nowPlaying.total_pages || 0,
-        fetchPage: (p) => Api.getNowPlayingMovies(p)
-      });
-
-      window.App.renderCarousel('new-series-upcoming', cached.upcoming.results || []);
-      window.App.setPagination('new-series-upcoming', {
-        page: cached.upcoming.page || 1,
-        totalPages: cached.upcoming.total_pages || 0,
-        fetchPage: (p) => Api.getUpcomingMovies(p)
-      });
+      renderPagedRow('new-series-now-playing', cached.nowPlaying, (p) => Api.getNowPlayingMovies(p));
+      renderPagedRow('new-series-upcoming', cached.upcoming, (p) => Api.getUpcomingMovies(p));
 
       newSeriesLoaded = true;
       return;
@@ -167,19 +144,8 @@
         State.setSectionCache('new-series', { nowPlaying, upcoming });
       }
 
-      window.App.renderCarousel('new-series-now-playing', nowPlaying.results || []);
-      window.App.setPagination('new-series-now-playing', {
-        page: nowPlaying.page || 1,
-        totalPages: nowPlaying.total_pages || 0,
-        fetchPage: (p) => Api.getNowPlayingMovies(p)
-      });
-
-      window.App.renderCarousel('new-series-upcoming', upcoming.results || []);
-      window.App.setPagination('new-series-upcoming', {
-        page: upcoming.page || 1,
-        totalPages: upcoming.total_pages || 0,
-        fetchPage: (p) => Api.getUpcomingMovies(p)
-      });
+      renderPagedRow('new-series-now-playing', nowPlaying, (p) => Api.getNowPlayingMovies(p));
+      renderPagedRow('new-series-upcoming', upcoming, (p) => Api.getUpcomingMovies(p));
     } catch (err) {
       console.error('Failed to load new series', err);
       window.App.setCarouselsMessage(NEW_SERIES_CAROUSELS, "Couldn't load new releases. Try again.", true, () => {
@@ -196,12 +162,7 @@
 
     const cached = State.getSectionCache && State.getSectionCache('news');
     if (cached && cached.upcoming) {
-      window.App.renderCarousel('news-upcoming', cached.upcoming.results || []);
-      window.App.setPagination('news-upcoming', {
-        page: cached.upcoming.page || 1,
-        totalPages: cached.upcoming.total_pages || 0,
-        fetchPage: (p) => Api.getUpcomingMovies(p)
-      });
+      renderPagedRow('news-upcoming', cached.upcoming, (p) => Api.getUpcomingMovies(p));
       newsLoaded = true;
       return;
     }
@@ -213,12 +174,7 @@
     try {
       const upcoming = await Api.getUpcomingMovies(1);
       if (State.setSectionCache) State.setSectionCache('news', { upcoming });
-      window.App.renderCarousel('news-upcoming', upcoming.results || []);
-      window.App.setPagination('news-upcoming', {
-        page: upcoming.page || 1,
-        totalPages: upcoming.total_pages || 0,
-        fetchPage: (p) => Api.getUpcomingMovies(p)
-      });
+      renderPagedRow('news-upcoming', upcoming, (p) => Api.getUpcomingMovies(p));
     } catch (err) {
       console.error('Failed to load news', err);
       window.App.setCarouselsMessage(NEWS_CAROUSELS, "Couldn't load updates. Try again.", true, () => {
@@ -262,18 +218,8 @@
       if (cached.franchises && Array.isArray(cached.franchises)) {
         window.App.renderCarousel('collections-franchises', cached.franchises);
       }
-      window.App.renderCarousel('collections-top-rated', cached.topRated.results || []);
-      window.App.setPagination('collections-top-rated', {
-        page: cached.topRated.page || 1,
-        totalPages: cached.topRated.total_pages || 0,
-        fetchPage: (p) => Api.getTopRatedMovies(p)
-      });
-      window.App.renderCarousel('collections-popular', cached.popular.results || []);
-      window.App.setPagination('collections-popular', {
-        page: cached.popular.page || 1,
-        totalPages: cached.popular.total_pages || 0,
-        fetchPage: (p) => Api.getPopularMovies(p)
-      });
+      renderPagedRow('collections-top-rated', cached.topRated, (p) => Api.getTopRatedMovies(p));
+      renderPagedRow('collections-popular', cached.popular, (p) => Api.getPopularMovies(p));
       collectionsLoaded = true;
       return;
     }
@@ -292,18 +238,8 @@
       if (State.setSectionCache) State.setSectionCache('collections', { franchises, topRated, popular });
 
       window.App.renderCarousel('collections-franchises', franchises);
-      window.App.renderCarousel('collections-top-rated', topRated.results || []);
-      window.App.setPagination('collections-top-rated', {
-        page: topRated.page || 1,
-        totalPages: topRated.total_pages || 0,
-        fetchPage: (p) => Api.getTopRatedMovies(p)
-      });
-      window.App.renderCarousel('collections-popular', popular.results || []);
-      window.App.setPagination('collections-popular', {
-        page: popular.page || 1,
-        totalPages: popular.total_pages || 0,
-        fetchPage: (p) => Api.getPopularMovies(p)
-      });
+      renderPagedRow('collections-top-rated', topRated, (p) => Api.getTopRatedMovies(p));
+      renderPagedRow('collections-popular', popular, (p) => Api.getPopularMovies(p));
     } catch (err) {
       console.error('Failed to load collections', err);
       window.App.setCarouselsMessage(COLLECTIONS_CAROUSELS, "Couldn't load collections. Try again.", true, () => {

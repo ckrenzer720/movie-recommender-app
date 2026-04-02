@@ -280,8 +280,7 @@ const AuthUI = {
     } finally {
       this.setPending(false);
     }
-  }
-  ,
+  },
 
   async requestPasswordReset() {
     if (this.isPending) return;
@@ -326,8 +325,7 @@ const AuthUI = {
     } finally {
       this.setPending(false);
     }
-  }
-  ,
+  },
 
   updatePasswordStrengthHint() {
     if (!this.resetStrengthHint || !this.resetPassword) return;
