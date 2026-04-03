@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const { createRateLimiter } = require('./rate-limit');
 const {
   getFavorites,
   setFavorites,
@@ -43,49 +44,23 @@ app.use(cors({
 }));
 app.use(express.json());
 
-/**
- * Lightweight in-memory rate limiting.
- * Note: this is per-process (not shared across servers) and resets on restart.
- */
-const rateLimitStore = new Map();
-function rateLimit({ windowMs, max, keyFn, message }) {
-  const win = Number(windowMs) || 60000;
-  const limit = Number(max) || 60;
-  const getKey = typeof keyFn === 'function' ? keyFn : (req) => req.ip;
-  const msg = message || 'Too many requests. Try again soon.';
+// Rate limiter (Redis-backed when REDIS_URL is set; otherwise in-memory).
+let rateLimit = null;
+createRateLimiter().then((limiter) => {
+  rateLimit = limiter.rateLimit;
+}).catch(() => {
+  rateLimit = null;
+});
 
-  return function rateLimitMiddleware(req, res, next) {
-    try {
-      const now = Date.now();
-      const key = String(getKey(req) || req.ip || 'unknown');
-      const entry = rateLimitStore.get(key);
-
-      if (!entry || entry.resetAt <= now) {
-        rateLimitStore.set(key, { count: 1, resetAt: now + win });
-        return next();
-      }
-
-      entry.count += 1;
-      if (entry.count <= limit) return next();
-
-      const retryAfterSec = Math.max(1, Math.ceil((entry.resetAt - now) / 1000));
-      res.set('Retry-After', String(retryAfterSec));
-      return res.status(429).json({ error: msg, retryAfterSec });
-    } catch (err) {
-      // If limiter fails, don't block legitimate traffic.
-      return next();
-    }
+function rateLimitOrBypass(options) {
+  // Avoid recreating middleware per request; build once when ready.
+  let built = null;
+  return (req, res, next) => {
+    if (!rateLimit) return next();
+    if (!built) built = rateLimit(options);
+    return built(req, res, next);
   };
 }
-
-function cleanupRateLimitStore() {
-  const now = Date.now();
-  // Avoid unbounded growth: remove expired entries.
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (!entry || entry.resetAt <= now) rateLimitStore.delete(key);
-  }
-}
-setInterval(cleanupRateLimitStore, 5 * 60 * 1000).unref?.();
 
 function cleanupAuthTokenTables() {
   try {
@@ -193,11 +168,12 @@ async function sendPasswordResetEmail({ toEmail, username, resetToken }) {
 
 app.post(
   '/api/auth/register',
-  rateLimit({
+  rateLimitOrBypass({
     windowMs: 60 * 60 * 1000,
     max: 5,
     keyFn: (req) => `register:${req.ip}`,
-    message: 'Too many registration attempts. Please try again later.'
+    message: 'Too many registration attempts. Please try again later.',
+    prefix: 'auth'
   }),
   async (req, res) => {
   try {
@@ -250,11 +226,12 @@ app.post(
 
 app.post(
   '/api/auth/request-password-reset',
-  rateLimit({
+  rateLimitOrBypass({
     windowMs: 15 * 60 * 1000,
     max: 5,
     keyFn: (req) => `pwreset_req:${req.ip}`,
-    message: 'Too many password reset requests. Please try again later.'
+    message: 'Too many password reset requests. Please try again later.',
+    prefix: 'auth'
   }),
   async (req, res) => {
     try {
@@ -298,11 +275,12 @@ app.post(
 
 app.post(
   '/api/auth/reset-password',
-  rateLimit({
+  rateLimitOrBypass({
     windowMs: 15 * 60 * 1000,
     max: 8,
     keyFn: (req) => `pwreset_do:${req.ip}`,
-    message: 'Too many reset attempts. Please try again later.'
+    message: 'Too many reset attempts. Please try again later.',
+    prefix: 'auth'
   }),
   async (req, res) => {
   try {
@@ -333,11 +311,12 @@ app.post(
 
 app.post(
   '/api/auth/verify-email',
-  rateLimit({
+  rateLimitOrBypass({
     windowMs: 15 * 60 * 1000,
     max: 10,
     keyFn: (req) => `verify:${req.ip}`,
-    message: 'Too many verification attempts. Please try again later.'
+    message: 'Too many verification attempts. Please try again later.',
+    prefix: 'auth'
   }),
   async (req, res) => {
   try {
@@ -365,14 +344,15 @@ app.post(
 
 app.post(
   '/api/auth/login',
-  rateLimit({
+  rateLimitOrBypass({
     windowMs: 60 * 1000,
     max: 12,
     keyFn: (req) => {
       const u = normalizeUsername(req.body?.username);
       return `login:${req.ip}:${u || 'unknown'}`;
     },
-    message: 'Too many login attempts. Please wait a moment and try again.'
+    message: 'Too many login attempts. Please wait a moment and try again.',
+    prefix: 'auth'
   }),
   async (req, res) => {
   try {
