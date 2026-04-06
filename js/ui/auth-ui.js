@@ -43,6 +43,8 @@ const AuthUI = {
     this.signupUsername = document.getElementById('signup-username');
     this.signupEmail = document.getElementById('signup-email');
     this.signupPassword = document.getElementById('signup-password');
+    this.signupPasswordConfirm = document.getElementById('signup-password-confirm');
+    this.signupStrengthHint = document.getElementById('signup-strength-hint');
 
     this.verifyCode = document.getElementById('verify-code');
     this.forgotEmail = document.getElementById('forgot-email');
@@ -104,6 +106,7 @@ const AuthUI = {
     });
 
     this.resetPassword?.addEventListener('input', () => this.updatePasswordStrengthHint());
+    this.signupPassword?.addEventListener('input', () => this.updateSignupPasswordStrengthHint());
 
     if (window.AuthClient?.onAuthChange) {
       window.AuthClient.onAuthChange(() => {
@@ -243,7 +246,10 @@ const AuthUI = {
       const username = this.signupUsername?.value?.trim();
       const email = this.signupEmail?.value?.trim();
       const password = this.signupPassword?.value;
-      if (!username || !email || !password) return this.showError('Enter username, email, and password.');
+      const confirm = this.signupPasswordConfirm?.value;
+      if (!username || !email || !password || !confirm) return this.showError('Enter username, email, and confirm your password.');
+      if (String(password).length < 8) return this.showError('Password must be at least 8 characters.');
+      if (password !== confirm) return this.showError('Passwords do not match.');
 
       const data = await window.AuthClient.register({ username, email, password });
 
@@ -330,26 +336,27 @@ const AuthUI = {
   updatePasswordStrengthHint() {
     if (!this.resetStrengthHint || !this.resetPassword) return;
     const pwd = String(this.resetPassword.value || '');
-    if (!pwd) {
-      this.resetStrengthHint.textContent = 'Use 8+ characters. Tip: add numbers + symbols.';
-      return;
-    }
+    this.resetStrengthHint.textContent = this.getPasswordStrengthText(pwd);
+  },
+
+  updateSignupPasswordStrengthHint() {
+    if (!this.signupStrengthHint || !this.signupPassword) return;
+    const pwd = String(this.signupPassword.value || '');
+    this.signupStrengthHint.textContent = this.getPasswordStrengthText(pwd);
+  },
+
+  getPasswordStrengthText(pwd) {
+    if (!pwd) return 'Use 8+ characters. Tip: add numbers + symbols.';
     const hasLen = pwd.length >= 8;
     const hasUpper = /[A-Z]/.test(pwd);
     const hasLower = /[a-z]/.test(pwd);
     const hasNum = /[0-9]/.test(pwd);
     const hasSym = /[^A-Za-z0-9]/.test(pwd);
 
-    const parts = [
-      hasLen ? '8+ chars' : '8+ chars',
-      hasUpper ? 'uppercase' : 'uppercase',
-      hasLower ? 'lowercase' : 'lowercase',
-      hasNum ? 'number' : 'number',
-      hasSym ? 'symbol' : 'symbol'
-    ];
+    const parts = ['8+ chars', 'uppercase', 'lowercase', 'number', 'symbol'];
     const score = [hasLen, hasUpper, hasLower, hasNum, hasSym].filter(Boolean).length;
     const label = score >= 4 ? 'Strong' : score >= 3 ? 'Good' : 'Weak';
-    this.resetStrengthHint.textContent = `Password strength: ${label} (${parts.join(', ')})`;
+    return `Password strength: ${label} (${parts.join(', ')})`;
   }
 };
 

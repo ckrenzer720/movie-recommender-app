@@ -138,12 +138,18 @@ async function sendTextEmail({ toEmail, subject, text }) {
     return { sent: false };
   }
 
-  await transporter.sendMail({
-    from: emailFrom,
-    to: toEmail,
-    subject,
-    text
-  });
+  try {
+    await transporter.sendMail({
+      from: emailFrom,
+      to: toEmail,
+      subject,
+      text
+    });
+  } catch (err) {
+    if (!isDevEchoMode()) throw err;
+    // Dev-mode: fall back to echo token instead of failing the request.
+    return { sent: false };
+  }
 
   return { sent: true };
 }

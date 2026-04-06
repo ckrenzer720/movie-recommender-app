@@ -7,6 +7,7 @@
     "dev": "live-server --host=127.0.0.1 --open=/",
     "start": "live-server --host=127.0.0.1 --open=/",
     "server": "cd server && node index.js",
+    "smoke": "cd server && npm run smoke",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
