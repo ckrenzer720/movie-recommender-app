@@ -8,6 +8,7 @@
     "start": "live-server --host=127.0.0.1 --open=/",
     "server": "cd server && node index.js",
     "smoke": "cd server && npm run smoke",
+    "predeploy": "cd server && npm run predeploy",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

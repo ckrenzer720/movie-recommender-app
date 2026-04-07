@@ -127,6 +127,28 @@ function isDevEchoMode() {
   return process.env.EMAIL_VERIFICATION_DEV_ECHO === 'true' || process.env.NODE_ENV === 'development';
 }
 
+function getPasswordPolicy() {
+  // PASSWORD_POLICY=strict enables stronger checks.
+  // Default is "basic" (min length only).
+  const policy = String(process.env.PASSWORD_POLICY || '').trim().toLowerCase();
+  return policy === 'strict' ? 'strict' : 'basic';
+}
+
+function validatePasswordOrMessage(password) {
+  const pwd = String(password || '');
+  if (pwd.length < 8) return 'Password must be at least 8 characters.';
+  if (getPasswordPolicy() !== 'strict') return null;
+
+  const hasUpper = /[A-Z]/.test(pwd);
+  const hasLower = /[a-z]/.test(pwd);
+  const hasNum = /[0-9]/.test(pwd);
+  const hasSym = /[^A-Za-z0-9]/.test(pwd);
+  if (!hasUpper || !hasLower || !hasNum || !hasSym) {
+    return 'Password must include uppercase, lowercase, a number, and a symbol.';
+  }
+  return null;
+}
+
 async function sendTextEmail({ toEmail, subject, text }) {
   const emailFrom = process.env.EMAIL_FROM;
   const transporter = getSmtpTransporter();
@@ -195,7 +217,8 @@ app.post(
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       return res.status(400).json({ error: 'Enter a valid email address.' });
     }
-    if (plainPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+    const pwdErr = validatePasswordOrMessage(plainPassword);
+    if (pwdErr) return res.status(400).json({ error: pwdErr });
 
     const passwordHash = await bcrypt.hash(plainPassword, 12);
     const user = createUser({ username: normalizedUsername, email: normalizedEmail, passwordHash });
@@ -293,7 +316,8 @@ app.post(
     const { token, newPassword } = req.body || {};
     if (!token || !newPassword) return res.status(400).json({ error: 'token and newPassword are required.' });
     const plainPassword = String(newPassword || '');
-    if (plainPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+    const pwdErr = validatePasswordOrMessage(plainPassword);
+    if (pwdErr) return res.status(400).json({ error: pwdErr });
 
     const tokenHash = sha256Hex(token);
     const row = getPasswordResetToken(tokenHash);

@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js",
-    "smoke": "node scripts/smoke-test.js"
+    "smoke": "node scripts/smoke-test.js",
+    "predeploy": "node scripts/predeploy.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.0.0",
