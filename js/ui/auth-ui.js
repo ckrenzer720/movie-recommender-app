@@ -47,6 +47,7 @@ const AuthUI = {
     this.signupStrengthHint = document.getElementById('signup-strength-hint');
 
     this.verifyCode = document.getElementById('verify-code');
+    this.verifyResendBtn = document.getElementById('verify-resend-btn');
     this.forgotEmail = document.getElementById('forgot-email');
     this.resetCode = document.getElementById('reset-code');
     this.resetPassword = document.getElementById('reset-password');
@@ -83,6 +84,10 @@ const AuthUI = {
     this.modeVerify?.addEventListener('submit', (e) => {
       e.preventDefault();
       this.verifyEmail();
+    });
+
+    this.verifyResendBtn?.addEventListener('click', () => {
+      this.resendVerification();
     });
 
     this.modeForgot?.addEventListener('submit', (e) => {
@@ -283,6 +288,31 @@ const AuthUI = {
       setTimeout(() => this.showError(''), 2500);
     } catch (err) {
       this.showError(err.message || 'Verification failed.');
+    } finally {
+      this.setPending(false);
+    }
+  },
+
+  async resendVerification() {
+    if (this.isPending) return;
+    try {
+      this.setPending(true);
+      this.showError('');
+
+      // We don't have the email in verify mode, so reuse whatever is in signup email field
+      // (or ask user to go back to signup if empty).
+      const email = this.signupEmail?.value?.trim();
+      if (!email) return this.showError('Enter your email in Create account, then click Resend code.');
+
+      const data = await window.AuthClient.resendVerification({ email });
+      if (data?.verificationToken) {
+        if (this.verifyCode) this.verifyCode.value = data.verificationToken;
+      }
+
+      this.showError('Verification code sent. Check your email.');
+      setTimeout(() => this.showError(''), 2500);
+    } catch (err) {
+      this.showError(err.message || 'Could not resend code.');
     } finally {
       this.setPending(false);
     }

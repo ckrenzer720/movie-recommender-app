@@ -340,6 +340,52 @@ app.post(
 });
 
 app.post(
+  '/api/auth/resend-verification',
+  rateLimitOrBypass({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    keyFn: (req) => `resend_verify:${req.ip}`,
+    message: 'Too many verification email requests. Please try again later.',
+    prefix: 'auth'
+  }),
+  async (req, res) => {
+    try {
+      const { email } = req.body || {};
+      const normalizedEmail = normalizeEmail(email);
+      if (!normalizedEmail) return res.status(400).json({ error: 'email is required.' });
+      if (!isValidEmail(normalizedEmail)) {
+        return res.status(400).json({ error: 'Enter a valid email address.' });
+      }
+
+      const user = getUserByEmail(normalizedEmail);
+      // Avoid email enumeration: always ok.
+      if (!user) return res.json({ ok: true });
+      if (user.is_verified) return res.json({ ok: true });
+
+      const verificationToken = crypto.randomBytes(24).toString('hex');
+      const tokenHash = sha256Hex(verificationToken);
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+      deleteEmailVerificationTokensForUser(user.id);
+      createEmailVerificationToken({ userId: user.id, tokenHash, expiresAt });
+
+      const sendResult = await sendVerificationEmail({
+        toEmail: normalizedEmail,
+        username: user.username,
+        verificationToken
+      });
+
+      if (!sendResult.sent && isDevEchoMode()) {
+        return res.json({ ok: true, verificationToken });
+      }
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Could not resend verification email.' });
+    }
+  }
+);
+
+app.post(
   '/api/auth/verify-email',
   rateLimitOrBypass({
     windowMs: 15 * 60 * 1000,

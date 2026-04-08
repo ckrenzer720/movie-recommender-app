@@ -107,6 +107,14 @@ const AuthClient = {
     return res.json();
   },
 
+  async resendVerification({ email }) {
+    const res = await this.request('/api/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    });
+    return res.json();
+  },
+
   async login({ username, password }) {
     const res = await this.request('/api/auth/login', {
       method: 'POST',
