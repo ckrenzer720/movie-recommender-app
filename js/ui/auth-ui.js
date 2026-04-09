@@ -267,7 +267,13 @@ const AuthUI = {
 
       this.setMode('verify');
     } catch (err) {
-      this.showError(err.message || 'Could not create account.');
+      const msg = err.message || 'Could not create account.';
+      if (msg.toLowerCase().includes('already exists')) {
+        this.showError('That username/email already exists. Try signing in, or use “Forgot password?”.');
+        this.setMode('signin');
+        return;
+      }
+      this.showError(msg);
     } finally {
       this.setPending(false);
     }
