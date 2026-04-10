@@ -124,7 +124,9 @@ function isValidEmail(email) {
 }
 
 function isDevEchoMode() {
-  return process.env.EMAIL_VERIFICATION_DEV_ECHO === 'true' || process.env.NODE_ENV === 'development';
+  // Explicit opt-in: when true, the server echoes verification/reset tokens
+  // instead of attempting to send real emails.
+  return process.env.EMAIL_VERIFICATION_DEV_ECHO === 'true';
 }
 
 function getPasswordPolicy() {
@@ -150,14 +152,13 @@ function validatePasswordOrMessage(password) {
 }
 
 async function sendTextEmail({ toEmail, subject, text }) {
+  if (isDevEchoMode()) {
+    return { sent: false };
+  }
   const emailFrom = process.env.EMAIL_FROM;
   const transporter = getSmtpTransporter();
   if (!transporter || !emailFrom) {
-    if (!isDevEchoMode()) {
-      throw new Error('SMTP is not configured.');
-    }
-    // Dev-mode: do not send, caller will echo token.
-    return { sent: false };
+    throw new Error('SMTP is not configured.');
   }
 
   try {
@@ -168,9 +169,7 @@ async function sendTextEmail({ toEmail, subject, text }) {
       text
     });
   } catch (err) {
-    if (!isDevEchoMode()) throw err;
-    // Dev-mode: fall back to echo token instead of failing the request.
-    return { sent: false };
+    throw err;
   }
 
   return { sent: true };

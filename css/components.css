@@ -352,6 +352,18 @@
   z-index: 1;
 }
 
+.movie-card__favorite[disabled],
+.movie-card__favorite[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.movie-card__favorite[disabled]:hover,
+.movie-card__favorite[aria-disabled="true"]:hover {
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--color-text-muted);
+}
+
 .movie-card__favorite:hover {
   background: rgba(0, 0, 0, 0.8);
   color: var(--color-text);
@@ -455,11 +467,13 @@
   cursor: pointer;
   line-height: 1;
   padding: var(--space-xs);
+  z-index: 2;
 }
 
 .modal__content {
   padding: var(--space-xl);
   position: relative;
+  z-index: 1;
 }
 
 .modal__header {

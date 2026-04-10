@@ -89,11 +89,12 @@
     const rating = Utils.formatRating(movie.vote_average);
     const genres = Api.genreIdsToNamesSync(movie.genre_ids || []);
     const isFav = State.isFavorite(movie.id);
+    const canFavorite = Boolean(window.AuthClient?.user);
 
     card.innerHTML = `
       <div class="movie-card__poster-wrap">
         <img class="movie-card__poster" src="${posterUrl}" alt="${Utils.escapeHtml(movie.title)}" loading="lazy">
-        <button type="button" class="movie-card__favorite ${isFav ? 'is-favorite' : ''}" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}" data-movie-id="${movie.id}">${isFav ? '♥' : '♡'}</button>
+        <button type="button" class="movie-card__favorite ${isFav ? 'is-favorite' : ''}" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}" data-movie-id="${movie.id}" ${canFavorite ? '' : 'disabled aria-disabled="true"'}>${isFav ? '♥' : '♡'}</button>
       </div>
       <div class="movie-card__body">
         <h3 class="movie-card__title">${Utils.escapeHtml(movie.title)}</h3>
@@ -123,6 +124,11 @@
         const favBtn = e.target.closest('.movie-card__favorite');
         if (favBtn && container.contains(favBtn)) {
           e.preventDefault();
+          if (!window.AuthClient?.user) {
+            window.AuthUI?.open?.('signin');
+            window.AuthUI?.showError?.('Sign in to add favorites.');
+            return;
+          }
           const movieId = Number(favBtn.getAttribute('data-movie-id'));
           const card = favBtn.closest('.movie-card');
           const backing = card && card.__movie;

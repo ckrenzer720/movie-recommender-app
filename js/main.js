@@ -58,6 +58,15 @@
     });
 
     window.addEventListener('authchanged', () => {
+      // Lock/unlock favorite buttons without requiring a rerender.
+      const canFavorite = Boolean(window.AuthClient?.user);
+      document.querySelectorAll('.movie-card__favorite').forEach((btn) => {
+        if (!(btn instanceof HTMLButtonElement)) return;
+        btn.disabled = !canFavorite;
+        if (!canFavorite) btn.setAttribute('aria-disabled', 'true');
+        else btn.removeAttribute('aria-disabled');
+      });
+
       if (window.AuthClient?.user) {
         loadUserFavorites().then(() => {
           if (State.currentSection === 'favorites') renderFavorites();
@@ -138,6 +147,17 @@
   function renderFavorites() {
     const container = window.App.getCarouselContainer?.('favorites');
     if (!container) return;
+
+    if (!window.AuthClient?.user) {
+      window.App.setCarouselMessage?.(
+        container,
+        'Sign in to use favorites.',
+        false,
+        'favorites-locked',
+        () => window.AuthUI?.open?.('signin')
+      );
+      return;
+    }
 
     const list = State.getFavorites();
     container.innerHTML = '';

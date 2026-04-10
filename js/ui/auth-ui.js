@@ -396,5 +396,8 @@ const AuthUI = {
   }
 };
 
+// Expose for other UI modules (e.g., gating favorites behind auth).
+window.AuthUI = AuthUI;
+
 document.addEventListener('DOMContentLoaded', () => AuthUI.init());
 

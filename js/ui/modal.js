@@ -9,9 +9,9 @@ const Modal = {
   _previousActiveElement: null,
 
   init() {
-    this.overlay = document.createElement('div');
-    this.overlay.className = 'modal-overlay';
-    this.overlay.setAttribute('aria-hidden', 'true');
+    this.overlay = document.createElement("div");
+    this.overlay.className = "modal-overlay";
+    this.overlay.setAttribute("aria-hidden", "true");
     this.overlay.innerHTML = `
       <div class="modal">
         <button type="button" class="modal__close" aria-label="Close">&times;</button>
@@ -20,15 +20,15 @@ const Modal = {
         </div>
       </div>
     `;
-    this.content = this.overlay.querySelector('.modal__body');
-    this.closeBtn = this.overlay.querySelector('.modal__close');
+    this.content = this.overlay.querySelector(".modal__body");
+    this.closeBtn = this.overlay.querySelector(".modal__close");
 
-    this.closeBtn.addEventListener('click', () => this.close());
-    this.overlay.addEventListener('click', (e) => {
+    this.closeBtn.addEventListener("click", () => this.close());
+    this.overlay.addEventListener("click", (e) => {
       if (e.target === this.overlay) this.close();
     });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') this.close();
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") this.close();
     });
 
     document.body.appendChild(this.overlay);
@@ -40,8 +40,8 @@ const Modal = {
    */
   async open(movieId) {
     this._previousActiveElement = document.activeElement;
-    this.overlay.classList.add('is-open');
-    this.overlay.setAttribute('aria-hidden', 'false');
+    this.overlay.classList.add("is-open");
+    this.overlay.setAttribute("aria-hidden", "false");
     this.content.innerHTML = '<p class="placeholder">Loading…</p>';
     this.closeBtn.focus();
 
@@ -56,7 +56,7 @@ const Modal = {
     try {
       const movie = await Api.getMovieDetails(movieId);
       const trailerKey = Api.getTrailerKey(movie);
-      const posterUrl = Utils.posterUrl(movie.poster_path, 'w500');
+      const posterUrl = Utils.posterUrl(movie.poster_path, "w500");
       const rating = Utils.formatRating(movie.vote_average);
       const date = Utils.formatDate(movie.release_date);
       const overview = Utils.truncate(movie.overview, 300);
@@ -68,7 +68,7 @@ const Modal = {
       let html = `
         <div class="modal__header">
           <h2>${titleSafe}</h2>
-          <button type="button" class="movie-card__favorite modal__favorite ${isFav ? 'is-favorite' : ''}" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}" data-movie-id="${movie.id}">${isFav ? '♥' : '♡'}</button>
+          <button type="button" class="movie-card__favorite modal__favorite ${isFav ? "is-favorite" : ""}" aria-label="${isFav ? "Remove from favorites" : "Add to favorites"}" data-movie-id="${movie.id}">${isFav ? "♥" : "♡"}</button>
         </div>
         <p><strong>Rating:</strong> ★ ${rating} &nbsp; <strong>Release:</strong> ${date}</p>
         <p>${Utils.escapeHtml(overview)}</p>
@@ -95,13 +95,18 @@ const Modal = {
         `;
       }
       this.content.innerHTML = html;
-      const favBtn = this.content.querySelector('.modal__favorite');
+      const favBtn = this.content.querySelector(".modal__favorite");
       if (favBtn) {
-        favBtn.addEventListener('click', (e) => {
+        favBtn.addEventListener("click", (e) => {
           e.preventDefault();
+          if (!window.AuthClient?.user) {
+            window.AuthUI?.open?.("signin");
+            window.AuthUI?.showError?.("Sign in to add favorites.");
+            return;
+          }
           const nowFav = State.toggleFavorite(movie);
           Utils.applyFavoriteButtonState(favBtn, nowFav);
-          window.dispatchEvent(new CustomEvent('favoriteschanged'));
+          window.dispatchEvent(new CustomEvent("favoriteschanged"));
         });
       }
     } catch (err) {
@@ -110,19 +115,22 @@ const Modal = {
         <p class="placeholder">Could not load movie details.</p>
         <button type="button" class="btn btn--primary modal__retry">Try again</button>
       `;
-      const retryBtn = this.content.querySelector('.modal__retry');
+      const retryBtn = this.content.querySelector(".modal__retry");
       if (retryBtn) {
-        retryBtn.addEventListener('click', () => this.open(movieId));
+        retryBtn.addEventListener("click", () => this.open(movieId));
       }
     }
   },
 
   close() {
-    this.overlay.classList.remove('is-open');
-    this.overlay.setAttribute('aria-hidden', 'true');
-    this.content.innerHTML = '';
-    if (this._previousActiveElement && typeof this._previousActiveElement.focus === 'function') {
+    this.overlay.classList.remove("is-open");
+    this.overlay.setAttribute("aria-hidden", "true");
+    this.content.innerHTML = "";
+    if (
+      this._previousActiveElement &&
+      typeof this._previousActiveElement.focus === "function"
+    ) {
       this._previousActiveElement.focus();
     }
-  }
+  },
 };
