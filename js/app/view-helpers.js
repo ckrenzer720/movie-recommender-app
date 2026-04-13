@@ -5,6 +5,7 @@
 
 (function () {
   window.App = window.App || {};
+  const delegatedCarousels = new WeakSet();
 
   function getCarouselContainer(name) {
     return document.querySelector(`[data-carousel="${name}"]`);
@@ -101,19 +102,6 @@
       </div>
     `;
 
-    const btn = card.querySelector('.movie-card__favorite');
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const nowFav = State.toggleFavorite(movie);
-      Utils.applyFavoriteButtonState(btn, nowFav);
-      window.dispatchEvent(new CustomEvent('favoriteschanged'));
-    });
-
-    card.addEventListener('click', (e) => {
-      if (e.target.closest('.movie-card__favorite')) return;
-      Modal.open(movie.id);
-    });
-
     return card;
   }
 
@@ -129,6 +117,41 @@
     if (!container) return;
     container.classList.remove('carousel--loading', 'carousel--empty');
 
+    if (!delegatedCarousels.has(container)) {
+      delegatedCarousels.add(container);
+      container.addEventListener('click', (e) => {
+        const favBtn = e.target.closest('.movie-card__favorite');
+        if (favBtn && container.contains(favBtn)) {
+          e.preventDefault();
+          const movieId = Number(favBtn.getAttribute('data-movie-id'));
+          const card = favBtn.closest('.movie-card');
+          const backing = card && card.__movie;
+
+          if (backing) {
+            const nowFav = State.toggleFavorite(backing);
+            Utils.applyFavoriteButtonState(favBtn, nowFav);
+          } else if (Number.isFinite(movieId)) {
+            // Fallback: if we can't access the backing movie object, we can still remove.
+            if (State.isFavorite(movieId)) {
+              State.removeFavorite(movieId);
+              Utils.applyFavoriteButtonState(favBtn, false);
+            }
+          }
+
+          window.dispatchEvent(new CustomEvent('favoriteschanged'));
+          return;
+        }
+
+        const card = e.target.closest('.movie-card');
+        if (!card || !container.contains(card)) return;
+        if (e.target.closest('.movie-card__favorite')) return;
+        const movieId = Number(card.dataset.movieId);
+        if (Number.isFinite(movieId) && movieId > 0) {
+          Modal.open(movieId);
+        }
+      });
+    }
+
     const { append = false } = options;
     if (!append) container.innerHTML = '';
 
@@ -138,7 +161,14 @@
     }
 
     const fragment = document.createDocumentFragment();
-    items.forEach((item) => fragment.appendChild(createAnyCard(item)));
+    items.forEach((item) => {
+      const el = createAnyCard(item);
+      if (el && item && typeof item === 'object') {
+        // Attach backing data for delegated favorite toggles.
+        el.__movie = item;
+      }
+      fragment.appendChild(el);
+    });
     container.appendChild(fragment);
 
     if (!append && typeof window.App.updateLoadMoreButton === 'function') {

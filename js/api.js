@@ -26,6 +26,8 @@ const Api = {
 
   /** Genre list from TMDB (cached). */
   _genres: null,
+  /** Fast lookup for genre names (id -> name), built when genres load. */
+  _genreMap: null,
 
   /**
    * Low-level request to TMDB.
@@ -171,6 +173,7 @@ const Api = {
     if (this._genres) return this._genres;
     const data = await this.request('/genre/movie/list', { language: 'en-US' });
     this._genres = data.genres || [];
+    this._genreMap = Object.fromEntries(this._genres.map((g) => [g.id, g.name]));
     return this._genres;
   },
 
@@ -192,9 +195,8 @@ const Api = {
    * @returns {string}
    */
   genreIdsToNamesSync(genreIds) {
-    if (!Array.isArray(genreIds) || genreIds.length === 0 || !this._genres) return '';
-    const map = Object.fromEntries(this._genres.map(g => [g.id, g.name]));
-    return genreIds.map(id => map[id]).filter(Boolean).join(', ');
+    if (!Array.isArray(genreIds) || genreIds.length === 0 || !this._genreMap) return '';
+    return genreIds.map((id) => this._genreMap[id]).filter(Boolean).join(', ');
   },
 
   /**

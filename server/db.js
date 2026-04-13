@@ -10,6 +10,11 @@ if (!fs.existsSync(dir)) {
 
 const db = new Database(dbPath);
 
+// Pragmas: small app, but these improve concurrency + safety/perf defaults.
+db.pragma('foreign_keys = ON');
+db.pragma('journal_mode = WAL');
+db.pragma('synchronous = NORMAL');
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS user_favorites (
     user_id TEXT NOT NULL PRIMARY KEY,
@@ -46,6 +51,13 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
   );
+`);
+
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_expires_at
+  ON email_verification_tokens (expires_at);
+  CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires_at
+  ON password_reset_tokens (expires_at);
 `);
 
 function getFavorites(userId) {
