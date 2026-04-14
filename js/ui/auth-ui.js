@@ -48,6 +48,7 @@ const AuthUI = {
 
     this.verifyCode = document.getElementById('verify-code');
     this.verifyResendBtn = document.getElementById('verify-resend-btn');
+    this.verifyEmailBtn = document.getElementById('verify-email-btn');
     this.forgotEmail = document.getElementById('forgot-email');
     this.resetCode = document.getElementById('reset-code');
     this.resetPassword = document.getElementById('reset-password');
@@ -103,6 +104,13 @@ const AuthUI = {
     this.forgotPasswordBtn?.addEventListener('click', () => {
       this.setMode('forgot');
       setTimeout(() => this.forgotEmail?.focus(), 0);
+    });
+
+    this.verifyEmailBtn?.addEventListener('click', () => {
+      const typed = this.signinUsername?.value?.trim() || '';
+      if (typed.includes('@') && this.signupEmail) this.signupEmail.value = typed;
+      this.setMode('verify');
+      setTimeout(() => this.verifyCode?.focus(), 0);
     });
 
     this.signOutBtn?.addEventListener('click', () => {
@@ -237,7 +245,18 @@ const AuthUI = {
       await window.AuthClient.login({ username, password });
       this.close();
     } catch (err) {
-      this.showError(err.message || 'Sign in failed.');
+      const msg = err?.message || 'Sign in failed.';
+      // If the backend blocks login until verification, guide user straight to verify flow.
+      if (String(msg).toLowerCase().includes('email not verified')) {
+        // Resend uses the signup email field; if user typed an email to sign in,
+        // copy it over so "Resend code" works without extra steps.
+        const typed = this.signinUsername?.value?.trim() || '';
+        if (typed.includes('@') && this.signupEmail) this.signupEmail.value = typed;
+        this.open('verify');
+        this.showError('Your email isn’t verified yet. Click “Resend code”, then paste the code here and click “Verify email”.');
+        return;
+      }
+      this.showError(msg);
     } finally {
       this.setPending(false);
     }
@@ -307,7 +326,7 @@ const AuthUI = {
 
       // We don't have the email in verify mode, so reuse whatever is in signup email field
       // (or ask user to go back to signup if empty).
-      const email = this.signupEmail?.value?.trim();
+      const email = (this.signupEmail?.value?.trim() || this.signinUsername?.value?.trim() || '');
       if (!email) return this.showError('Enter your email in Create account, then click Resend code.');
 
       const data = await window.AuthClient.resendVerification({ email });
