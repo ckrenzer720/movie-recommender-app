@@ -88,6 +88,7 @@
     const posterUrl = Utils.posterUrl(movie.poster_path);
     const rating = Utils.formatRating(movie.vote_average);
     const genres = Api.genreIdsToNamesSync(movie.genre_ids || []);
+    const reason = typeof movie.__reason === 'string' ? movie.__reason : '';
     const isFav = State.isFavorite(movie.id);
     const canFavorite = Boolean(window.AuthClient?.user);
 
@@ -100,6 +101,7 @@
         <h3 class="movie-card__title">${Utils.escapeHtml(movie.title)}</h3>
         <span class="movie-card__rating">★ ${rating}</span>
         ${genres ? `<p class="movie-card__genres">${Utils.escapeHtml(genres)}</p>` : ''}
+        ${reason ? `<p class="movie-card__reason">${Utils.escapeHtml(reason)}</p>` : ''}
       </div>
     `;
 

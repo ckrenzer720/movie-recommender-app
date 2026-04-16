@@ -147,6 +147,48 @@ const Api = {
   },
 
   /**
+   * TMDB "collaborative-ish" recommendations for a movie.
+   * @param {number} movieId
+   * @param {number} [page=1]
+   * @param {string} [language]
+   */
+  async getMovieRecommendations(movieId, page = 1, language = 'en-US') {
+    const id = Number(movieId);
+    if (!Number.isInteger(id) || id < 1) {
+      throw new Error('Invalid movie ID');
+    }
+    return this.request(`/movie/${id}/recommendations`, { page, language });
+  },
+
+  /**
+   * Discover movies with flexible filters.
+   * Accepts a small safe subset of TMDB discover params.
+   * @param {object} params
+   * @param {number} [params.page]
+   * @param {string|number} [params.with_genres] - comma-separated genre ids
+   * @param {string|number} [params.with_runtime.gte]
+   * @param {string|number} [params.with_runtime.lte]
+   * @param {string} [params.primary_release_date.gte] - YYYY-MM-DD
+   * @param {string} [params.primary_release_date.lte] - YYYY-MM-DD
+   * @param {string} [params.sort_by]
+   * @param {string} [params.language]
+   */
+  async discoverMovies(params = {}) {
+    const safe = {
+      page: params.page,
+      language: params.language || 'en-US',
+      sort_by: params.sort_by || 'popularity.desc',
+      with_genres: params.with_genres,
+      'with_runtime.gte': params['with_runtime.gte'],
+      'with_runtime.lte': params['with_runtime.lte'],
+      'primary_release_date.gte': params['primary_release_date.gte'],
+      'primary_release_date.lte': params['primary_release_date.lte'],
+      include_adult: 'false'
+    };
+    return this.request('/discover/movie', safe);
+  },
+
+  /**
    * Discover movies by genre (for Library genre rows).
    * @param {number} genreId - TMDB genre id (e.g. 28 Action, 35 Comedy).
    * @param {number} [page=1]

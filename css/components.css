@@ -397,6 +397,76 @@
   margin-top: var(--space-xs);
 }
 
+.movie-card__reason {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  margin-top: var(--space-xs);
+  line-height: 1.25;
+}
+
+/* Recommendation filters (Home) */
+.reco-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: end;
+  margin: 10px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.reco-controls__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.reco-controls__field--range {
+  min-width: 240px;
+  flex: 1 1 260px;
+}
+
+.reco-controls__label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.reco-controls__select {
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  outline: none;
+}
+
+.reco-controls__ranges {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.reco-controls input[type="range"] {
+  width: 100%;
+}
+
+.reco-controls__range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.reco-controls__actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;

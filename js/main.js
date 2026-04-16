@@ -35,6 +35,7 @@
     Nav.init();
     Modal.init();
     Carousel.init();
+    window.App.initRecommendationControls?.();
     if (window.App.initSearch) {
       window.App.initSearch({ switchView, setHashForSection });
     }
@@ -55,6 +56,8 @@
 
     window.addEventListener('favoriteschanged', () => {
       if (State.currentSection === 'favorites') renderFavorites();
+      // Keep home recommendations responsive to taste changes.
+      if (State.currentSection === 'home') window.App.loadHomeRecommendations?.();
     });
 
     window.addEventListener('authchanged', () => {

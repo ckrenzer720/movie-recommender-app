@@ -34,7 +34,8 @@
         fetchPage: (p) => Api.getTopRatedMovies(p)
       });
 
-      window.App.renderCarousel('recommendations', popularResults.slice(0, 10));
+      // Recommendations are personalized; refresh separately.
+      window.App.loadHomeRecommendations?.();
       return;
     }
 
@@ -62,7 +63,8 @@
       renderPagedRow('featured', popular, (p) => Api.getPopularMovies(p));
       renderPagedRow('editors-choice', topRated, (p) => Api.getTopRatedMovies(p));
 
-      window.App.renderCarousel('recommendations', popularResults.slice(0, 10));
+      // Personalized hybrid recommendations
+      await window.App.loadHomeRecommendations?.();
     } catch (err) {
       console.error('Failed to load movies', err);
       window.App.setCarouselsMessage(HOME_CAROUSELS, 'Couldn’t load movies. Check your connection and API key.', true, loadHome);
