@@ -57,6 +57,7 @@ const Modal = {
       const movie = await Api.getMovieDetails(movieId);
       const trailerKey = Api.getTrailerKey(movie);
       const posterUrl = Utils.posterUrl(movie.poster_path, "w500");
+      const posterSrcSet = Utils.posterSrcSet(movie.poster_path, ["w342", "w500", "w780"]);
       const rating = Utils.formatRating(movie.vote_average);
       const date = Utils.formatDate(movie.release_date);
       const overview = Utils.truncate(movie.overview, 300);
@@ -70,6 +71,7 @@ const Modal = {
           <h2>${titleSafe}</h2>
           <button type="button" class="movie-card__favorite modal__favorite ${isFav ? "is-favorite" : ""}" aria-label="${isFav ? "Remove from favorites" : "Add to favorites"}" data-movie-id="${movie.id}">${isFav ? "♥" : "♡"}</button>
         </div>
+        <img class="modal__poster" src="${posterUrl}" ${posterSrcSet ? `srcset="${posterSrcSet}" sizes="(max-width: 900px) 90vw, 780px"` : ""} alt="${titleSafe}" loading="lazy" decoding="async" style="width:100%; max-width:520px; border-radius:12px; border:1px solid var(--color-border); margin: 10px 0 14px;" />
         <p><strong>Rating:</strong> ★ ${rating} &nbsp; <strong>Release:</strong> ${date}</p>
         <p>${Utils.escapeHtml(overview)}</p>
       `;

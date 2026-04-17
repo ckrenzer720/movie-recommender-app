@@ -85,7 +85,8 @@
     const card = document.createElement('article');
     card.className = 'movie-card';
     card.dataset.movieId = movie.id;
-    const posterUrl = Utils.posterUrl(movie.poster_path);
+    const posterUrl = Utils.posterUrl(movie.poster_path, 'w342');
+    const posterSrcSet = Utils.posterSrcSet(movie.poster_path);
     const rating = Utils.formatRating(movie.vote_average);
     const genres = Api.genreIdsToNamesSync(movie.genre_ids || []);
     const reason = typeof movie.__reason === 'string' ? movie.__reason : '';
@@ -94,7 +95,7 @@
 
     card.innerHTML = `
       <div class="movie-card__poster-wrap">
-        <img class="movie-card__poster" src="${posterUrl}" alt="${Utils.escapeHtml(movie.title)}" loading="lazy">
+        <img class="movie-card__poster" src="${posterUrl}" ${posterSrcSet ? `srcset="${posterSrcSet}" sizes="(max-width: 480px) 140px, 180px"` : ''} alt="${Utils.escapeHtml(movie.title)}" loading="lazy" decoding="async">
         <button type="button" class="movie-card__favorite ${isFav ? 'is-favorite' : ''}" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}" data-movie-id="${movie.id}" ${canFavorite ? '' : 'disabled aria-disabled="true"'}>${isFav ? '♥' : '♡'}</button>
       </div>
       <div class="movie-card__body">

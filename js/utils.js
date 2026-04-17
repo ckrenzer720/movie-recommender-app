@@ -45,6 +45,26 @@ const Utils = {
   },
 
   /**
+   * Build a srcset string for TMDB posters (responsive images).
+   * @param {string} path
+   * @param {string[]} [sizes]
+   * @returns {string}
+   */
+  posterSrcSet(path, sizes = ['w185', 'w342', 'w500']) {
+    if (!path) return '';
+    const base = 'https://image.tmdb.org/t/p';
+    const widthBySize = { w92: 92, w154: 154, w185: 185, w342: 342, w500: 500, w780: 780 };
+    return sizes
+      .map((s) => {
+        const w = widthBySize[s];
+        if (!w) return null;
+        return `${base}/${s}${path} ${w}w`;
+      })
+      .filter(Boolean)
+      .join(', ');
+  },
+
+  /**
    * Truncate text to max length with ellipsis
    * @param {string} text
    * @param {number} maxLength

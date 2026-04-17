@@ -7,6 +7,14 @@ const Api = {
   baseUrl: 'https://api.themoviedb.org/3',
   placeholderKey: 'YOUR_API_KEY',
 
+  /**
+   * Simple in-memory GET cache (per full URL) + in-flight dedupe.
+   * Keeps the UI snappy and reduces repeated calls for the same pages.
+   */
+  _cache: new Map(), // url -> { expiresAt:number, data:any }
+  _inFlight: new Map(), // url -> Promise<any>
+  _defaultCacheTtlMs: 60 * 1000,
+
   /** Resolved key: config.js (window.__TMDB_API_KEY__) or Api.apiKey */
   get apiKey() {
     if (typeof window !== 'undefined' && window.__TMDB_API_KEY__) {
@@ -46,26 +54,50 @@ const Api = {
       }
     });
 
-    let res;
+    const urlString = url.toString();
+
+    // Cache + in-flight dedupe only for GET-like requests (all TMDB calls here).
+    const now = Date.now();
+    const cached = this._cache.get(urlString);
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
+    const existing = this._inFlight.get(urlString);
+    if (existing) return existing;
+
+    const ttlMs = (path === '/genre/movie/list') ? 10 * 60 * 1000 : this._defaultCacheTtlMs;
+
+    const p = (async () => {
+      let res;
+      try {
+        res = await fetch(urlString);
+      } catch (err) {
+        throw new Error(`Network error: ${err.message}`);
+      }
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const message = data.status_message || data.message || `HTTP ${res.status}`;
+        const code = data.status_code || res.status;
+        throw new Error(`TMDB error (${code}): ${message}`);
+      }
+
+      if (data.success === false) {
+        throw new Error(data.status_message || 'API request failed');
+      }
+
+      // Only store successful responses.
+      this._cache.set(urlString, { data, expiresAt: Date.now() + ttlMs });
+      return data;
+    })();
+
+    this._inFlight.set(urlString, p);
     try {
-      res = await fetch(url.toString());
-    } catch (err) {
-      throw new Error(`Network error: ${err.message}`);
+      return await p;
+    } finally {
+      this._inFlight.delete(urlString);
     }
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      const message = data.status_message || data.message || `HTTP ${res.status}`;
-      const code = data.status_code || res.status;
-      throw new Error(`TMDB error (${code}): ${message}`);
-    }
-
-    if (data.success === false) {
-      throw new Error(data.status_message || 'API request failed');
-    }
-
-    return data;
   },
 
   /**
